@@ -2,7 +2,10 @@ import api from './axios';
 
 /**
  * Eczane (Pharmacy) API endpoints
+ * Backend'deki router/eczane.py ile uyumlu
  */
+
+// ==================== PROFİL ====================
 
 // Get eczane profile
 export const getProfile = async () => {
@@ -16,44 +19,48 @@ export const updateProfile = async (profileData) => {
   return response.data;
 };
 
-// Get stock
+// ==================== STOK YÖNETİMİ ====================
+
+// Get all stock
 export const getStock = async () => {
-  const response = await api.get('/api/eczane/stok');
+  const response = await api.get('/api/eczane/stoklar');
+  return response.data;
+};
+
+// Get low stock alerts
+export const getStockAlerts = async () => {
+  const response = await api.get('/api/eczane/stoklar/uyarilar');
   return response.data;
 };
 
 // Add stock
 export const addStock = async (stockData) => {
-  const response = await api.post('/api/eczane/stok/ekle', stockData);
+  const response = await api.post('/api/eczane/stoklar', stockData);
   return response.data;
 };
 
 // Update stock
 export const updateStock = async (stockId, stockData) => {
-  const response = await api.put(`/api/eczane/stok/${stockId}`, stockData);
+  const response = await api.put(`/api/eczane/stoklar/${stockId}`, stockData);
   return response.data;
 };
 
 // Delete stock
 export const deleteStock = async (stockId) => {
-  const response = await api.delete(`/api/eczane/stok/${stockId}`);
+  const response = await api.delete(`/api/eczane/stoklar/${stockId}`);
   return response.data;
 };
 
-// Get low stock items
-export const getLowStock = async () => {
-  const response = await api.get('/api/eczane/stok/dusuk');
+// Add non-prescription product (creates ilac + stok)
+export const addProduct = async (productData) => {
+  const response = await api.post('/api/eczane/urun-ekle', productData);
   return response.data;
 };
 
-// Get pending orders
-export const getPendingOrders = async () => {
-  const response = await api.get('/api/eczane/siparisler/bekleyenler');
-  return response.data;
-};
+// ==================== SİPARİŞ YÖNETİMİ ====================
 
 // Get all orders
-export const getOrders = async (params) => {
+export const getOrders = async (params = {}) => {
   const response = await api.get('/api/eczane/siparisler', { params });
   return response.data;
 };
@@ -64,45 +71,44 @@ export const getOrderDetails = async (orderId) => {
   return response.data;
 };
 
-// Approve order
+// Update order status
+export const updateOrderStatus = async (orderId, newStatus, description = '') => {
+  const response = await api.put(`/api/eczane/siparisler/${orderId}/durum`, {
+    yeni_durum: newStatus,
+    aciklama: description
+  });
+  return response.data;
+};
+
+// Approve order (shortcut to set status to "hazirlaniyor")
 export const approveOrder = async (orderId) => {
   const response = await api.post(`/api/eczane/siparisler/${orderId}/onayla`);
   return response.data;
 };
 
-// Reject order
-export const rejectOrder = async (orderId, reason) => {
-  const response = await api.post(`/api/eczane/siparisler/${orderId}/reddet`, { red_nedeni: reason });
+// Cancel/reject order
+export const cancelOrder = async (orderId, reason) => {
+  const response = await api.post(`/api/eczane/siparisler/${orderId}/iptal`, {
+    iptal_nedeni: reason
+  });
   return response.data;
 };
 
-// Mark as preparing
-export const markAsPreparing = async (orderId) => {
-  const response = await api.post(`/api/eczane/siparisler/${orderId}/hazirlaniyor`);
+// ==================== HELPER FUNCTIONS ====================
+
+// Get pending orders (filter by status)
+export const getPendingOrders = async () => {
+  const response = await api.get('/api/eczane/siparisler', {
+    params: { durum: 'beklemede' }
+  });
   return response.data;
 };
 
-// Mark as ready for delivery
-export const markAsReadyForDelivery = async (orderId) => {
-  const response = await api.post(`/api/eczane/siparisler/${orderId}/yolda`);
-  return response.data;
-};
-
-// Mark as delivered
-export const markAsDelivered = async (orderId) => {
-  const response = await api.post(`/api/eczane/siparisler/${orderId}/teslim-edildi`);
-  return response.data;
-};
-
-// Quick approve order
-export const quickApproveOrder = async (orderId) => {
-  const response = await api.post(`/api/eczane/siparisler/${orderId}/hizli-onayla`);
-  return response.data;
-};
-
-// Add product (non-prescription)
-export const addProduct = async (productData) => {
-  const response = await api.post('/api/eczane/urunler/ekle', productData);
+// Get preparing orders
+export const getPreparingOrders = async () => {
+  const response = await api.get('/api/eczane/siparisler', {
+    params: { durum: 'hazirlaniyor' }
+  });
   return response.data;
 };
 
@@ -110,18 +116,16 @@ export default {
   getProfile,
   updateProfile,
   getStock,
+  getStockAlerts,
   addStock,
   updateStock,
   deleteStock,
-  getLowStock,
-  getPendingOrders,
+  addProduct,
   getOrders,
   getOrderDetails,
+  updateOrderStatus,
   approveOrder,
-  rejectOrder,
-  markAsPreparing,
-  markAsReadyForDelivery,
-  markAsDelivered,
-  quickApproveOrder,
-  addProduct,
+  cancelOrder,
+  getPendingOrders,
+  getPreparingOrders,
 };

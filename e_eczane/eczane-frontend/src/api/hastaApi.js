@@ -42,6 +42,20 @@ export const uploadPrescription = async (formData) => {
   return response.data;
 };
 
+// Query prescription by TC and/or recete_no
+export const queryPrescription = async (queryData) => {
+  const response = await api.post('/api/hasta/recete-sorgula', queryData);
+  return response.data;
+};
+
+// Get pharmacies that have specific medicines in stock
+export const getPharmaciesWithStock = async (ilacIds) => {
+  const response = await api.get('/api/hasta/eczaneler', {
+    params: { ilac_ids: ilacIds.join(',') }
+  });
+  return response.data;
+};
+
 // Get cart - This will need to be implemented in the backend
 export const getCart = async () => {
   // For now, return empty cart since backend endpoints don't exist
@@ -115,6 +129,8 @@ export default {
   getMedicineAlternatives,
   getPrescriptions,
   uploadPrescription,
+  queryPrescription,
+  getPharmaciesWithStock,
   getCart,
   addToCart,
   updateCartItem,

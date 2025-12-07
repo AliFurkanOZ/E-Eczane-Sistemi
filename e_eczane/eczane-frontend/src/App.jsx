@@ -17,10 +17,23 @@ import AdminDashboard from './pages/admin/Dashboard';
 
 // Hasta Pages
 import PrescriptionList from './pages/hasta/prescriptions/List';
+import PharmacySelect from './pages/hasta/prescriptions/PharmacySelect';
 import OrderList from './pages/hasta/orders/List';
 import Cart from './pages/hasta/cart/Cart';
 import MedicineSearch from './pages/hasta/medicines/Search';
 import Profile from './pages/hasta/profile/Profile';
+
+// Eczane Pages
+import EczaneOrderList from './pages/eczane/orders/List';
+import StockList from './pages/eczane/stock/StockList';
+import AddProduct from './pages/eczane/stock/AddProduct';
+import EczaneProfile from './pages/eczane/profile/Profile';
+
+// Admin Pages
+import PendingPharmacies from './pages/admin/pharmacies/PendingPharmacies';
+import AllPharmacies from './pages/admin/pharmacies/AllPharmacies';
+import AllPatients from './pages/admin/patients/AllPatients';
+import AllOrders from './pages/admin/orders/AllOrders';
 
 import { USER_TYPES } from './utils/constants';
 
@@ -31,54 +44,63 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <Routes>
         {/* Public routes */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             isAuthenticated ? (
               <Navigate to={`/${userType}/dashboard`} replace />
             ) : (
               <Login />
             )
-          } 
+          }
         />
         <Route path="/register/hasta" element={<RegisterHasta />} />
         <Route path="/register/eczane" element={<RegisterEczane />} />
-        
+
         {/* Protected routes - Hasta */}
         <Route element={<ProtectedRoute allowedRoles={[USER_TYPES.HASTA]} />}>
           <Route path="/hasta/dashboard" element={<HastaDashboard />} />
           <Route path="/hasta/profil" element={<Profile />} />
           <Route path="/hasta/receteler" element={<PrescriptionList />} />
+          <Route path="/hasta/eczane-sec" element={<PharmacySelect />} />
           <Route path="/hasta/siparisler" element={<OrderList />} />
           <Route path="/hasta/sepet" element={<Cart />} />
           <Route path="/hasta/ilaclar" element={<MedicineSearch />} />
         </Route>
-        
+
         {/* Protected routes - Eczane */}
         <Route element={<ProtectedRoute allowedRoles={[USER_TYPES.ECZANE]} />}>
           <Route path="/eczane/dashboard" element={<EczaneDashboard />} />
+          <Route path="/eczane/siparisler" element={<EczaneOrderList />} />
+          <Route path="/eczane/stoklar" element={<StockList />} />
+          <Route path="/eczane/urun-ekle" element={<AddProduct />} />
+          <Route path="/eczane/profil" element={<EczaneProfile />} />
         </Route>
-        
+
         {/* Protected routes - Admin */}
         <Route element={<ProtectedRoute allowedRoles={[USER_TYPES.ADMIN]} />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/eczaneler/bekleyenler" element={<PendingPharmacies />} />
+          <Route path="/admin/eczaneler" element={<AllPharmacies />} />
+          <Route path="/admin/hastalar" element={<AllPatients />} />
+          <Route path="/admin/siparisler" element={<AllOrders />} />
         </Route>
-        
+
         {/* Redirect root to appropriate dashboard or login */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             isAuthenticated ? (
               <Navigate to={`/${userType}/dashboard`} replace />
             ) : (
               <Navigate to="/login" replace />
             )
-          } 
+          }
         />
-        
+
         {/* 404 */}
-        <Route 
-          path="*" 
+        <Route
+          path="*"
           element={
             <div className="flex items-center justify-center h-screen">
               <div className="text-center">
@@ -86,7 +108,7 @@ function App() {
                 <p className="text-xl text-gray-600">Sayfa Bulunamadı</p>
               </div>
             </div>
-          } 
+          }
         />
       </Routes>
     </div>
