@@ -10,7 +10,9 @@ import {
     PlusCircle,
     User,
     LogOut,
-    HelpCircle
+    HelpCircle,
+    ChevronRight,
+    Store
 } from 'lucide-react';
 
 const EczaneSidebar = () => {
@@ -33,95 +35,88 @@ const EczaneSidebar = () => {
     };
 
     return (
-        <>
-            {/* Desktop */}
-            <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-                <div className="flex flex-col flex-grow sidebar-official overflow-y-auto">
-                    <div className="flex items-center px-4 py-4 border-b border-gray-200 bg-[#00a651]">
-                        <div className="bg-white rounded p-1.5">
-                            <Package className="h-6 w-6 text-[#00a651]" />
-                        </div>
-                        <div className="ml-3">
-                            <h1 className="text-sm font-bold text-white">E-Eczane</h1>
-                            <p className="text-xs text-green-100">Eczane Paneli</p>
-                        </div>
-                    </div>
+        <div className="flex flex-col h-full">
+            {/* Brand */}
+            <div className="px-6 py-8 flex items-center">
+                <div className="bg-gradient-to-tr from-emerald-600 to-emerald-400 p-2.5 rounded-xl shadow-lg shadow-emerald-500/30">
+                    <Store className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-3">
+                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-emerald-500 font-display">
+                        E-Eczane
+                    </h1>
+                    <p className="text-xs text-slate-500 font-medium tracking-wide">ECZANE PANELİ</p>
+                </div>
+            </div>
 
-                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                        <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-full bg-[#00a651] flex items-center justify-center">
-                                <User className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm font-medium text-gray-900">Eczanem</p>
-                                <p className="text-xs text-gray-500 truncate max-w-[150px]">
-                                    {user?.email || 'eczane@email.com'}
-                                </p>
-                            </div>
+            {/* User Profile Card */}
+            <div className="px-4 mb-6">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-white to-slate-50 border border-white/50 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-100 rounded-full blur-2xl -mr-8 -mt-8 opacity-50 transition-opacity group-hover:opacity-100" />
+
+                    <div className="flex items-center relative z-10">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-lg ring-2 ring-white shadow-sm">
+                            {user?.name?.charAt(0).toUpperCase() || 'E'}
                         </div>
-                    </div>
-
-                    <nav className="flex-1 py-4">
-                        {navigation.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = location.pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.name}
-                                    to={item.href}
-                                    className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                                    style={isActive ? { borderLeftColor: '#00a651', color: '#00a651', background: '#f0fdf4' } : {}}
-                                >
-                                    <Icon className="w-5 h-5 mr-3" />
-                                    <span className="text-sm">{item.name}</span>
-                                </Link>
-                            );
-                        })}
-                    </nav>
-
-                    <div className="border-t border-gray-200 py-4">
-                        <button
-                            onClick={handleLogout}
-                            className="sidebar-nav-item w-full text-red-600 hover:bg-red-50"
-                        >
-                            <LogOut className="w-5 h-5 mr-3" />
-                            <span className="text-sm">Çıkış Yap</span>
-                        </button>
+                        <div className="ml-3 overflow-hidden">
+                            <p className="text-sm font-bold text-slate-800 truncate">
+                                {user?.name || 'Eczane Adı'}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                                {user?.email || 'eczane@email.com'}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Mobile */}
-            <div className="md:hidden fixed top-0 left-0 right-0 z-50">
-                <div className="bg-[#00a651] px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center">
-                        <Package className="h-6 w-6 text-white" />
-                        <span className="ml-2 text-white font-semibold">E-Eczane</span>
-                    </div>
-                    <button onClick={handleLogout} className="text-white p-2">
-                        <LogOut className="w-5 h-5" />
+            {/* Navigation */}
+            <nav className="flex-1 px-4 space-y-1">
+                <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    Menü
+                </p>
+                {navigation.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.href;
+
+                    return (
+                        <Link
+                            key={item.name}
+                            to={item.href}
+                            className={`
+                                group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200
+                                ${isActive
+                                    ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100'
+                                    : 'text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm'
+                                }
+                            `}
+                        >
+                            <Icon className={`
+                                mr-3 h-5 w-5 transition-colors duration-200
+                                ${isActive ? 'text-emerald-600' : 'text-slate-400 group-hover:text-emerald-500'}
+                            `} />
+                            <span className="flex-1">{item.name}</span>
+                            {isActive && (
+                                <ChevronRight className="w-4 h-4 text-emerald-400" />
+                            )}
+                        </Link>
+                    );
+                })}
+            </nav>
+
+            {/* Footer Actions */}
+            <div className="p-4 mt-auto">
+                <div className="border-t border-slate-200/60 pt-4 space-y-1">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center px-4 py-2.5 text-sm font-medium text-red-600 rounded-xl hover:bg-red-50 hover:text-red-700 transition-colors"
+                    >
+                        <LogOut className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-600" />
+                        Oturumu Kapat
                     </button>
                 </div>
-                <div className="bg-white border-b border-gray-200 overflow-x-auto">
-                    <div className="flex px-2 py-2">
-                        {navigation.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = location.pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.name}
-                                    to={item.href}
-                                    className={`flex flex-col items-center px-4 py-2 min-w-[70px] ${isActive ? 'text-[#00a651]' : 'text-gray-500'}`}
-                                >
-                                    <Icon className="w-5 h-5" />
-                                    <span className="text-[10px] mt-1 font-medium">{item.name.split(' ')[0]}</span>
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </div>
             </div>
-        </>
+        </div>
     );
 };
 

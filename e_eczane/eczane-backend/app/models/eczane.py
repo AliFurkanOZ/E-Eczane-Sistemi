@@ -15,6 +15,8 @@ class Eczane(BaseModel):
     adres = Column(String(500), nullable=False)
     telefon = Column(String(20), nullable=False)
     mahalle = Column(String(100), nullable=False, index=True)  # Konum bazlı sıralama için
+    ilce = Column(String(100), nullable=True, index=True)  # İlçe bilgisi
+    il = Column(String(100), nullable=True, index=True)  # İl bilgisi
     
     # Eczacı bilgileri
     eczaci_adi = Column(String(100), nullable=False)

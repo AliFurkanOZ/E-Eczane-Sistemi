@@ -11,6 +11,7 @@ export const USER_TYPES = {
   HASTA: 'hasta',
   ECZANE: 'eczane',
   ADMIN: 'admin',
+  DOKTOR: 'doktor',
 };
 
 // Order Status
@@ -90,7 +91,7 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER_HASTA: '/register/hasta',
   REGISTER_ECZANE: '/register/eczane',
-  
+
   // Hasta routes
   HASTA_DASHBOARD: '/hasta/dashboard',
   HASTA_PROFILE: '/hasta/profil',
@@ -98,18 +99,24 @@ export const ROUTES = {
   HASTA_PRESCRIPTIONS: '/hasta/receteler',
   HASTA_CART: '/hasta/sepet',
   HASTA_ORDERS: '/hasta/siparisler',
-  
+
   // Eczane routes
   ECZANE_DASHBOARD: '/eczane/dashboard',
   ECZANE_PROFILE: '/eczane/profil',
   ECZANE_STOCK: '/eczane/stok',
   ECZANE_ORDERS: '/eczane/siparisler',
-  
+
   // Admin routes
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_PHARMACIES: '/admin/eczaneler',
   ADMIN_PATIENTS: '/admin/hastalar',
   ADMIN_ORDERS: '/admin/siparisler',
+
+  // Doktor routes
+  DOKTOR_DASHBOARD: '/doktor/dashboard',
+  DOKTOR_RECETE_YAZ: '/doktor/recete-yaz',
+  DOKTOR_RECETELERIM: '/doktor/recetelerim',
+  DOKTOR_PROFIL: '/doktor/profil',
 };
 
 // Pagination

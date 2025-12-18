@@ -5,6 +5,8 @@ class UserType(str, Enum):
     HASTA = "hasta"
     ECZANE = "eczane"
     ADMIN = "admin"
+    DOKTOR = "doktor"
+
 
 
 class OnayDurumu(str, Enum):

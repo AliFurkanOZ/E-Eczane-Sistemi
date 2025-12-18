@@ -3,12 +3,16 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.models.base import BaseModel
 from app.utils.enums import SiparisDurum, OdemeDurum
-import random
+import uuid
+from datetime import datetime
 
 
 def generate_siparis_no():
-    """Benzersiz sipariş numarası üret"""
-    return f"SIP{random.randint(100000, 999999)}"
+    """Benzersiz sipariş numarası üret - UUID tabanlı çakışma önleyici"""
+    # Timestamp (YYMMDDHHMMSS) + UUID'nin son 4 karakteri
+    timestamp = datetime.now().strftime("%y%m%d%H%M%S")
+    unique_suffix = uuid.uuid4().hex[:4].upper()
+    return f"SIP{timestamp}{unique_suffix}"
 
 
 class Siparis(BaseModel):

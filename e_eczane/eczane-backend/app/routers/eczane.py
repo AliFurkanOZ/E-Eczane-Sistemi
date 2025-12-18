@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
@@ -23,8 +23,51 @@ from app.services.siparis_service import SiparisService
 from app.repositories.stok_repository import StokRepository
 from app.repositories.eczane_repository import EczaneRepository
 from app.utils.enums import SiparisDurum
+from app.utils.email import send_order_status_email
 
 router = APIRouter(tags=["Eczane"])
+
+
+def siparis_to_response(siparis: Siparis, db: Session) -> SiparisResponse:
+    """
+    Convert a Siparis model to SiparisResponse, properly handling the 
+    detaylar conversion with ilac_adi and barkod from related ilac objects.
+    """
+    # Get eczane and hasta names
+    eczane = db.query(Eczane).filter(Eczane.id == siparis.eczane_id).first()
+    hasta = db.query(Hasta).filter(Hasta.id == siparis.hasta_id).first()
+    
+    # Build detaylar manually because SiparisDetay doesn't have ilac_adi/barkod columns directly
+    detaylar_response = []
+    for detay in siparis.detaylar:
+        detaylar_response.append(SiparisDetayItem(
+            ilac_id=str(detay.ilac_id),
+            ilac_adi=detay.ilac.ad if detay.ilac else "Bilinmeyen İlaç",
+            barkod=detay.ilac.barkod if detay.ilac else "",
+            miktar=detay.miktar,
+            birim_fiyat=detay.birim_fiyat,
+            ara_toplam=detay.ara_toplam
+        ))
+    
+    return SiparisResponse(
+        id=str(siparis.id),
+        siparis_no=siparis.siparis_no,
+        eczane_id=str(siparis.eczane_id),
+        eczane_adi=eczane.eczane_adi if eczane else "Bilinmeyen Eczane",
+        hasta_id=str(siparis.hasta_id),
+        hasta_adi=hasta.tam_ad if hasta else "Bilinmeyen Hasta",
+        recete_id=str(siparis.recete_id) if siparis.recete_id else None,
+        toplam_tutar=siparis.toplam_tutar,
+        durum=siparis.durum,
+        odeme_durumu=siparis.odeme_durumu,
+        teslimat_adresi=siparis.teslimat_adresi,
+        siparis_notu=siparis.siparis_notu,
+        iptal_nedeni=siparis.iptal_nedeni,
+        created_at=siparis.created_at,
+        updated_at=siparis.updated_at,
+        detaylar=detaylar_response
+    )
+
 
 # ==================== PROFİL ====================
 
@@ -202,11 +245,34 @@ def add_recetesiz_urun(
     Returns:
         StokResponse: Oluşturulan stok
     """
-    eczane_repo = EczaneRepository(db)
-    eczane = eczane_repo.get_by_user_id(current_user.id)
-    eczane_service = EczaneService(db)
-    _, stok = eczane_service.add_recetesiz_ilac(eczane.id, ilac_data)
-    return stok
+    import traceback
+    try:
+        print(f"[DEBUG] add_recetesiz_urun called with: {ilac_data}")
+        eczane_repo = EczaneRepository(db)
+        eczane = eczane_repo.get_by_user_id(current_user.id)
+        print(f"[DEBUG] Found eczane: {eczane}")
+        
+        if not eczane:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Eczane profili bulunamadı"
+            )
+        
+        eczane_service = EczaneService(db)
+        _, stok = eczane_service.add_recetesiz_ilac(eczane.id, ilac_data)
+        print(f"[DEBUG] Created stok: {stok}")
+        print(f"[DEBUG] Stok ilac: {stok.ilac}")
+        print(f"[DEBUG] Stok ilac_adi: {stok.ilac_adi}")
+        return stok
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] Exception in add_recetesiz_urun: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"İç sunucu hatası: {str(e)}"
+        )
 
 # ==================== SİPARİŞ YÖNETİMİ ====================
 
@@ -241,8 +307,8 @@ def list_siparisler(
     
     offset = (page - 1) * page_size
     siparisler = query.order_by(Siparis.created_at.desc()).offset(offset).limit(page_size).all()
-    # The response model will handle the conversion of the list of siparis objects
-    return siparisler
+    # Use helper function to properly convert detaylar
+    return [siparis_to_response(s, db) for s in siparisler]
 
 @router.get("/siparisler/{siparis_id}", response_model=SiparisResponse, summary="Sipariş Detayı")
 def get_siparis_detay(
@@ -270,12 +336,13 @@ def get_siparis_detay(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Sipariş bulunamadı"
         )
-    return siparis
+    return siparis_to_response(siparis, db)
 
 @router.put("/siparisler/{siparis_id}/durum", response_model=SiparisResponse, summary="Sipariş Durumu Güncelle")
 def update_siparis_durum(
     siparis_id: uuid.UUID,
     durum_data: SiparisDurumGuncelle,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_eczane)
 ):
@@ -301,6 +368,11 @@ def update_siparis_durum(
             detail="Sipariş bulunamadı"
         )
     
+    # E-posta için gerekli bilgileri önceden al (DB session kapandıktan sonra kullanmak için)
+    hasta_email = siparis.hasta.user.email
+    hasta_adi = siparis.hasta.tam_ad
+    eczane_adi = eczane.eczane_adi
+    
     siparis = siparis_service.update_durum(
         siparis_id=siparis_id,
         yeni_durum=durum_data.yeni_durum,
@@ -308,11 +380,23 @@ def update_siparis_durum(
         aciklama=durum_data.aciklama
     )
     
-    return siparis
+    # E-postayı arka planda gönder (yanıtı beklemeden)
+    status_key = durum_data.yeni_durum.value.upper()
+    background_tasks.add_task(
+        send_order_status_email,
+        to_email=hasta_email,
+        order_id=str(siparis.id),
+        status=status_key,
+        patient_name=hasta_adi,
+        eczane_adi=eczane_adi
+    )
+    
+    return siparis_to_response(siparis, db)
 
 @router.post("/siparisler/{siparis_id}/onayla", response_model=SiparisResponse, summary="Sipariş Onayla")
 def onayla_siparis(
     siparis_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_eczane)
 ):
@@ -330,13 +414,14 @@ def onayla_siparis(
         aciklama="Sipariş onaylandı ve hazırlanmaya başlandı"
     )
     # Re-use the update function
-    return update_siparis_durum(siparis_id, durum_data, db, current_user)
+    return update_siparis_durum(siparis_id, durum_data, background_tasks, db, current_user)
 
 
 @router.post("/siparisler/{siparis_id}/iptal", response_model=SiparisResponse, summary="Sipariş İptal Et")
 def iptal_siparis(
     siparis_id: uuid.UUID,
     iptal_data: SiparisIptal,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_eczane)
 ):
@@ -362,10 +447,26 @@ def iptal_siparis(
             detail="Sipariş bulunamadı"
         )
     
+    # E-posta için gerekli bilgileri önceden al
+    hasta_email = siparis.hasta.user.email
+    hasta_adi = siparis.hasta.tam_ad
+    eczane_adi = eczane.eczane_adi
+    
     siparis = siparis_service.iptal_et(
         siparis_id=siparis_id,
         iptal_nedeni=iptal_data.iptal_nedeni,
         user_id=current_user.id
     )
     
-    return siparis
+    # İptal e-postasını arka planda gönder
+    background_tasks.add_task(
+        send_order_status_email,
+        to_email=hasta_email,
+        order_id=str(siparis.id),
+        status="IPTAL_EDILDI",
+        patient_name=hasta_adi,
+        cancel_reason=iptal_data.iptal_nedeni,
+        eczane_adi=eczane_adi
+    )
+    
+    return siparis_to_response(siparis, db)

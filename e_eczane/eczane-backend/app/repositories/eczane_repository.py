@@ -41,22 +41,32 @@ class EczaneRepository:
     
     def find_eczaneler_with_stock(
         self,
-        ilac_ids: List[UUID],
-        hasta_mahalle: Optional[str] = None
+        ilac_ids: List[str],
+        hasta_mahalle: Optional[str] = None,
+        hasta_ilce: Optional[str] = None,
+        hasta_il: Optional[str] = None
     ) -> List[Tuple[Eczane, Dict]]:
         """
-        Belirli ilaçlara sahip eczaneleri bul
+        Belirli ilaçlara sahip eczaneleri bul ve konuma göre sırala
         
         Args:
-            ilac_ids: Aranan ilaç ID'leri
-            hasta_mahalle: Hastanın mahallesi (konuma göre sıralama için)
+            ilac_ids: Aranan ilaç ID'leri (string format)
+            hasta_mahalle: Hastanın mahallesi
+            hasta_ilce: Hastanın ilçesi
+            hasta_il: Hastanın ili
         
         Returns:
-            List of (Eczane, stok_bilgileri) tuples
+            List of (Eczane, stok_bilgileri) tuples - konuma göre sıralı
         """
+        # Convert string IDs to UUIDs
+        uuid_ilac_ids = [UUID(ilac_id) for ilac_id in ilac_ids if ilac_id]
+        
+        if not uuid_ilac_ids:
+            return []
+        
         # Stokları olan eczaneleri bul
         stoklar = self.db.query(Stok).filter(
-            Stok.ilac_id.in_(ilac_ids),
+            Stok.ilac_id.in_(uuid_ilac_ids),
             Stok.miktar > 0
         ).all()
         
@@ -80,21 +90,28 @@ class EczaneRepository:
             Eczane.user.has(is_active=True)
         ).all()
         
-        # Eczaneleri konuma göre sırala
+        # Eczaneleri konuma göre sırala (mahalle > ilce > il)
+        def get_location_priority(eczane: Eczane) -> int:
+            """
+            Konum önceliği:
+            0 = Aynı mahalle (en yakın)
+            1 = Farklı mahalle, aynı ilçe
+            2 = Farklı ilçe, aynı il
+            3 = Farklı il (en uzak)
+            """
+            if hasta_mahalle and eczane.mahalle == hasta_mahalle:
+                return 0
+            if hasta_ilce and eczane.ilce and eczane.ilce.lower() == hasta_ilce.lower():
+                return 1
+            if hasta_il and eczane.il and eczane.il.lower() == hasta_il.lower():
+                return 2
+            return 3
+        
+        # Eczaneleri öncelik sırasına göre sırala
+        sorted_eczaneler = sorted(eczaneler, key=get_location_priority)
+        
         result = []
-        
-        # 1. Önce aynı mahallede olanlar
-        if hasta_mahalle:
-            ayni_mahalle = [e for e in eczaneler if e.mahalle == hasta_mahalle]
-            for eczane in ayni_mahalle:
-                result.append((eczane, eczane_stok_map[eczane.id]))
-        
-        # 2. Sonra diğer mahalleler
-        diger_mahalleler = [
-            e for e in eczaneler 
-            if hasta_mahalle is None or e.mahalle != hasta_mahalle
-        ]
-        for eczane in diger_mahalleler:
+        for eczane in sorted_eczaneler:
             result.append((eczane, eczane_stok_map[eczane.id]))
         
         return result

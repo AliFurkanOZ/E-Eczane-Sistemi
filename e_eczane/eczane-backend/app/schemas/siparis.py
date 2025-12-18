@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, field_serializer
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from decimal import Decimal
 from app.utils.enums import SiparisDurum, OdemeDurum
@@ -44,7 +44,7 @@ class SiparisCreate(BaseModel):
     eczane_id: str
     recete_id: Optional[str] = None
     items: List[SiparisDetayItem] = Field(..., min_length=1, description="Sipariş kalemleri")
-    teslimat_adresi: str = Field(..., min_length=10, max_length=500, description="Teslimat adresi")
+    teslimat_adresi: str = Field("", max_length=500, description="Teslimat adresi")
     siparis_notu: Optional[str] = Field(None, max_length=500, description="Sipariş notu")
 
 
@@ -86,16 +86,28 @@ class SiparisDurumGuncelle(BaseModel):
 
 
 class SiparisIptal(BaseModel):
-    """Sipariş iptal etme"""
+    """Sipariş iptal etme - Eczane için (neden zorunlu)"""
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "iptal_nedeni": "Yanlışlıkla sipariş verildi, iptal etmek istiyorum."
+                "iptal_nedeni": "Stok yetersizliği nedeniyle sipariş iptal edilmiştir."
             }
         }
     )
     
-    iptal_nedeni: str = Field(..., min_length=10, max_length=500, description="İptal nedeni")
+    iptal_nedeni: str = Field(..., min_length=10, max_length=500, description="İptal nedeni (eczane için zorunlu)")
+
+
+class HastaIptal(BaseModel):
+    """Sipariş iptal etme - Hasta için (neden opsiyonel)"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {}
+        }
+    )
+    
+    # Hasta için iptal nedeni opsiyonel, varsayılan değer kullanılır
+
 
 
 class EczaneListItem(BaseModel):
@@ -107,9 +119,12 @@ class EczaneListItem(BaseModel):
     adres: str
     telefon: str
     mahalle: str
+    ilce: Optional[str] = None
+    il: Optional[str] = None
     eczaci_tam_ad: str
-    stok_durumu: Dict[str, Dict[str, int]] = Field(
+    stok_durumu: Dict[str, Dict[str, Any]] = Field(
         ..., 
-        description="İlaç stok durumu: {ilac_id: {'miktar': int, 'yeterli': bool}}"
+        description="İlaç stok durumu: {ilac_id: {'miktar': int, 'stok_durumu': str}}"
     )
     tum_urunler_mevcut: bool = Field(..., description="Tüm ürünler stoklarda mevcut mu?")
+

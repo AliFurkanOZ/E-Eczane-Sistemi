@@ -44,7 +44,7 @@ export const uploadPrescription = async (formData) => {
 
 // Query prescription by TC and/or recete_no
 export const queryPrescription = async (queryData) => {
-  const response = await api.post('/api/hasta/recete-sorgula', queryData);
+  const response = await api.post('/api/hasta/recete/sorgula', queryData);
   return response.data;
 };
 
@@ -104,7 +104,13 @@ export const getOrderDetails = async (orderId) => {
   return response.data;
 };
 
-// Cancel order
+// Process payment and create order
+export const processPayment = async (paymentData) => {
+  const response = await api.post('/api/hasta/odeme/yap', paymentData);
+  return response.data;
+};
+
+// Cancel order - patient version (no reason needed, backend uses default)
 export const cancelOrder = async (orderId) => {
   const response = await api.post(`/api/hasta/siparislerim/${orderId}/iptal`);
   return response.data;
@@ -137,6 +143,7 @@ export default {
   removeFromCart,
   clearCart,
   createOrder,
+  processPayment,
   getOrders,
   getOrderDetails,
   cancelOrder,

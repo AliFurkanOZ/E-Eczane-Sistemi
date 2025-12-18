@@ -4,103 +4,134 @@ import { useNavigate, Link } from 'react-router-dom';
 import { registerHasta } from '../../redux/slices/authSlice';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import AddressSelector from '../../components/common/AddressSelector';
 import { Stethoscope, ArrowLeft } from 'lucide-react';
 
 const RegisterHasta = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading } = useSelector((state) => state.auth);
-  
+
   const [formData, setFormData] = useState({
     tc_no: '',
     ad: '',
     soyad: '',
     email: '',
     telefon: '',
-    adres: '',
     password: '',
     passwordConfirm: '',
   });
-  
+
+  const [addressData, setAddressData] = useState({
+    il: '',
+    ilce: '',
+    mahalle: '',
+    adres: ''
+  });
+
   const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user types
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
+  const handleAddressChange = (newAddress) => {
+    setAddressData(newAddress);
+    // Clear address errors
+    setErrors((prev) => ({
+      ...prev,
+      il: '',
+      ilce: '',
+      mahalle: '',
+      adres: ''
+    }));
+  };
+
   const validate = () => {
     const newErrors = {};
-    
+
     // TC No validation
     if (!formData.tc_no) {
       newErrors.tc_no = 'TC Kimlik No zorunludur';
     } else if (!/^\d{11}$/.test(formData.tc_no)) {
       newErrors.tc_no = 'TC Kimlik No 11 haneli olmalıdır';
     }
-    
+
     // Name validation
     if (!formData.ad.trim()) {
       newErrors.ad = 'Ad zorunludur';
     } else if (formData.ad.trim().length < 2) {
       newErrors.ad = 'Ad en az 2 karakter olmalıdır';
     }
-    
+
     if (!formData.soyad.trim()) {
       newErrors.soyad = 'Soyad zorunludur';
     } else if (formData.soyad.trim().length < 2) {
       newErrors.soyad = 'Soyad en az 2 karakter olmalıdır';
     }
-    
+
     // Email validation
     if (!formData.email) {
       newErrors.email = 'E-posta zorunludur';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Geçerli bir e-posta adresi giriniz';
     }
-    
+
     // Phone validation
     if (!formData.telefon) {
       newErrors.telefon = 'Telefon zorunludur';
     } else if (!/^0\d{10}$/.test(formData.telefon.replace(/\s/g, ''))) {
       newErrors.telefon = 'Geçerli bir telefon numarası giriniz (05XXXXXXXXX)';
     }
-    
+
     // Address validation
-    if (!formData.adres.trim()) {
-      newErrors.adres = 'Adres zorunludur';
-    } else if (formData.adres.trim().length < 10) {
-      newErrors.adres = 'Adres en az 10 karakter olmalıdır';
+    if (!addressData.il) {
+      newErrors.il = 'İl seçimi zorunludur';
     }
-    
+    if (!addressData.ilce) {
+      newErrors.ilce = 'İlçe seçimi zorunludur';
+    }
+    if (!addressData.mahalle) {
+      newErrors.mahalle = 'Mahalle seçimi zorunludur';
+    }
+    if (!addressData.adres || !addressData.adres.trim()) {
+      newErrors.adres = 'Sokak/Cadde adresi zorunludur';
+    } else if (addressData.adres.trim().length < 5) {
+      newErrors.adres = 'Adres en az 5 karakter olmalıdır';
+    }
+
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Şifre zorunludur';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Şifre en az 6 karakter olmalıdır';
     }
-    
+
     // Password confirm validation
     if (!formData.passwordConfirm) {
       newErrors.passwordConfirm = 'Şifre tekrarı zorunludur';
     } else if (formData.password !== formData.passwordConfirm) {
       newErrors.passwordConfirm = 'Şifreler eşleşmiyor';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) return;
-    
+
+    // Combine address into full string
+    const fullAddress = `${addressData.adres}, ${addressData.mahalle}, ${addressData.ilce}/${addressData.il}`;
+
     try {
       await dispatch(registerHasta({
         tc_no: formData.tc_no,
@@ -108,10 +139,10 @@ const RegisterHasta = () => {
         soyad: formData.soyad,
         email: formData.email,
         telefon: formData.telefon,
-        adres: formData.adres,
+        adres: fullAddress,
         password: formData.password,
       })).unwrap();
-      
+
       // Başarılı kayıt sonrası login sayfasına yönlendir
       navigate('/login');
     } catch (error) {
@@ -160,7 +191,7 @@ const RegisterHasta = () => {
                 maxLength={11}
                 required
               />
-              
+
               <Input
                 label="E-posta"
                 name="email"
@@ -184,7 +215,7 @@ const RegisterHasta = () => {
                 error={errors.ad}
                 required
               />
-              
+
               <Input
                 label="Soyad"
                 name="soyad"
@@ -208,16 +239,21 @@ const RegisterHasta = () => {
               required
             />
 
-            <Input
-              label="Adres"
-              name="adres"
-              type="text"
-              placeholder="Mahalle, Sokak, No, İl/İlçe"
-              value={formData.adres}
-              onChange={handleChange}
-              error={errors.adres}
-              required
-            />
+            {/* Address Selection */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Adres Bilgileri</h3>
+              <AddressSelector
+                value={addressData}
+                onChange={handleAddressChange}
+                errors={{
+                  il: errors.il,
+                  ilce: errors.ilce,
+                  mahalle: errors.mahalle,
+                  adres: errors.adres
+                }}
+                required
+              />
+            </div>
 
             {/* Password */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -231,7 +267,7 @@ const RegisterHasta = () => {
                 error={errors.password}
                 required
               />
-              
+
               <Input
                 label="Şifre Tekrar"
                 name="passwordConfirm"
@@ -272,4 +308,5 @@ const RegisterHasta = () => {
 };
 
 export default RegisterHasta;
+
 

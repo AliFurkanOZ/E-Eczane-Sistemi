@@ -17,6 +17,7 @@ class User(BaseModel):
     hasta = relationship("Hasta", back_populates="user", uselist=False, cascade="all, delete-orphan")
     eczane = relationship("Eczane", back_populates="user", uselist=False, cascade="all, delete-orphan")
     admin = relationship("Admin", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    doktor = relationship("Doktor", back_populates="user", uselist=False, cascade="all, delete-orphan")
     
     # Bildirimler
     bildirimler = relationship("Bildirim", back_populates="user", cascade="all, delete-orphan")

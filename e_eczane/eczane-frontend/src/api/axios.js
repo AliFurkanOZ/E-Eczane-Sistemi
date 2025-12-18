@@ -13,6 +13,9 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('[DEBUG] API Request:', config.url);
+    console.log('[DEBUG] Token exists:', !!token);
+    console.log('[DEBUG] Token value:', token ? token.substring(0, 20) + '...' : 'null');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -33,16 +36,18 @@ axiosInstance.interceptors.response.use(
       // 401 Unauthorized - Token geçersiz
       if (error.response.status === 401) {
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        localStorage.removeItem('userType');
+        localStorage.removeItem('userId');
+        // Don't redirect here - let the React Router handle it
+        // window.location.href = '/login';
       }
-      
+
       // 403 Forbidden - Yetki yok
       if (error.response.status === 403) {
         console.error('Bu işlem için yetkiniz yok');
       }
     }
-    
+
     return Promise.reject(error);
   }
 );

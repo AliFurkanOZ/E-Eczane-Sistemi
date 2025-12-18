@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.schemas.auth import UserLogin, Token, PasswordChange
+from app.schemas.auth import UserLogin, Token, PasswordChange, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.hasta import HastaCreate, HastaResponse
 from app.schemas.eczane import EczaneCreate, EczaneResponse
+from app.schemas.doktor import DoktorCreate, DoktorResponse
 from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
 from app.models.user import User
@@ -22,9 +23,9 @@ def login(
     """
     Kullanıcı girişi yapar ve JWT token döner
     
-    - **identifier**: Email, TC No veya Sicil No
+    - **identifier**: Email, TC No, Sicil No veya Diploma No
     - **password**: Şifre
-    - **user_type**: hasta, eczane veya admin
+    - **user_type**: hasta, eczane, admin veya doktor
     """
     auth_service = AuthService(db)
     return auth_service.login(login_data)
@@ -66,7 +67,6 @@ def register_eczane(
     auth_service = AuthService(db)
     eczane = auth_service.register_eczane(eczane_data)
     
-    # Return dict without response_model to include message
     return {
         "id": str(eczane.id),
         "user_id": str(eczane.user_id),
@@ -84,6 +84,37 @@ def register_eczane(
         "onay_notu": eczane.onay_notu,
         "created_at": eczane.created_at.isoformat(),
         "message": "Eczane kaydınız oluşturuldu. Admin onayı bekleniyor."
+    }
+
+
+@router.post(
+    "/register/doktor",
+    status_code=status.HTTP_201_CREATED,
+    summary="Doktor Kaydı"
+)
+def register_doktor(
+    doktor_data: DoktorCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Yeni doktor kaydı oluşturur
+    
+    Kayıt sonrası direkt aktif olur, giriş yapabilir
+    """
+    auth_service = AuthService(db)
+    doktor = auth_service.register_doktor(doktor_data)
+    
+    return {
+        "id": str(doktor.id),
+        "user_id": str(doktor.user_id),
+        "diploma_no": doktor.diploma_no,
+        "ad": doktor.ad,
+        "soyad": doktor.soyad,
+        "uzmanlik": doktor.uzmanlik,
+        "hastane": doktor.hastane,
+        "telefon": doktor.telefon,
+        "created_at": doktor.created_at.isoformat(),
+        "message": "Doktor kaydınız başarıyla oluşturuldu. Hemen giriş yapabilirsiniz."
     }
 
 
@@ -130,3 +161,45 @@ def logout():
     Not: Sunucu tarafında session yok, token frontend'de silinmeli
     """
     return {"message": "Başarıyla çıkış yapıldı"}
+
+
+@router.post("/forgot-password", summary="Şifremi Unuttum")
+def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Şifre sıfırlama e-postası gönderir
+    
+    Güvenlik nedeniyle her zaman aynı başarılı yanıtı döner
+    """
+    auth_service = AuthService(db)
+    return auth_service.forgot_password(request.email)
+
+
+@router.post("/reset-password", summary="Şifre Sıfırla")
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Token ile şifreyi sıfırlar
+    
+    - **token**: E-posta ile gönderilen şifre sıfırlama token'ı
+    - **new_password**: Yeni şifre (en az 8 karakter, büyük/küçük harf ve rakam içermeli)
+    - **new_password_confirm**: Yeni şifre tekrarı
+    """
+    auth_service = AuthService(db)
+    return auth_service.reset_password(request.token, request.new_password)
+
+
+@router.get("/verify-reset-token/{token}", summary="Token Doğrula")
+def verify_reset_token(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Şifre sıfırlama token'ının geçerliliğini kontrol eder
+    """
+    auth_service = AuthService(db)
+    return auth_service.verify_reset_token(token)

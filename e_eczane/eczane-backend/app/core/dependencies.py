@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -108,6 +109,13 @@ async def get_current_eczane(current_user: User = Depends(require_role(UserType.
 
 async def get_current_admin(current_user: User = Depends(require_role(UserType.ADMIN))) -> User:
     """Sadece admin kullanıcıları için"""
+    return current_user
+
+
+
+
+async def get_current_doktor(current_user: User = Depends(require_role(UserType.DOKTOR))) -> User:
+    """Sadece doktor kullanıcıları için"""
     return current_user
 
 

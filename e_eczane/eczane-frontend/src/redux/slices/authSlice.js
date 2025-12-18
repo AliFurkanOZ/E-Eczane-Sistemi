@@ -8,12 +8,12 @@ export const login = createAsyncThunk(
   async ({ identifier, password, userType }, { rejectWithValue }) => {
     try {
       const response = await authApi.login(identifier, password, userType);
-      
+
       // Token'ı localStorage'a kaydet
       localStorage.setItem('token', response.access_token);
       localStorage.setItem('userType', response.user_type);
       localStorage.setItem('userId', response.user_id);
-      
+
       toast.success('Giriş başarılı!');
       return response;
     } catch (error) {
@@ -47,8 +47,28 @@ export const registerEczane = createAsyncThunk(
       toast.success('Kayıt başarılı! Admin onayı bekleniyor.');
       return response;
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Kayıt başarısız');
-      return rejectWithValue(error.response?.data);
+      // Parse Pydantic validation errors properly
+      let errorMessage = 'Kayıt başarısız';
+      const responseData = error.response?.data;
+
+      if (responseData?.detail) {
+        if (Array.isArray(responseData.detail)) {
+          // Pydantic validation array format (422 errors)
+          errorMessage = responseData.detail
+            .map(err => {
+              // Extract field name from loc array
+              const field = err.loc ? err.loc[err.loc.length - 1] : '';
+              const msg = err.msg || err.message || '';
+              return field ? `${field}: ${msg}` : msg;
+            })
+            .join('. ');
+        } else {
+          errorMessage = responseData.detail;
+        }
+      }
+
+      toast.error(errorMessage);
+      return rejectWithValue({ detail: errorMessage, originalError: responseData });
     }
   }
 );
@@ -84,11 +104,11 @@ const authSlice = createSlice({
       state.userType = null;
       state.userId = null;
       state.isAuthenticated = false;
-      
+
       localStorage.removeItem('token');
       localStorage.removeItem('userType');
       localStorage.removeItem('userId');
-      
+
       toast.success('Çıkış yapıldı');
     },
     clearError: (state) => {
@@ -113,7 +133,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      
+
       // Register Hasta
       .addCase(registerHasta.pending, (state) => {
         state.loading = true;
@@ -126,7 +146,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      
+
       // Register Eczane
       .addCase(registerEczane.pending, (state) => {
         state.loading = true;
@@ -139,7 +159,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      
+
       // Get Me
       .addCase(getMe.pending, (state) => {
         state.loading = true;
@@ -150,10 +170,10 @@ const authSlice = createSlice({
       })
       .addCase(getMe.rejected, (state) => {
         state.loading = false;
-        state.isAuthenticated = false;
-        state.token = null;
-        state.userType = null;
-        state.userId = null;
+        // Don't clear auth state on getMe failure
+        // The user is still authenticated with a valid token
+        // Only log out on explicit 401 from protected endpoints
+        console.warn('Failed to fetch user details, but staying authenticated');
       });
   },
 });

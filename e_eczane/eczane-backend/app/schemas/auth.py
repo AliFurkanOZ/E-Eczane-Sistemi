@@ -62,3 +62,37 @@ class PasswordChange(BaseModel):
         if 'new_password' in info.data and v != info.data['new_password']:
             raise ValueError('Şifreler eşleşmiyor')
         return v
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Şifremi unuttum request schema"""
+    email: EmailStr = Field(..., description="E-posta adresi")
+
+
+class ResetPasswordRequest(BaseModel):
+    """Şifre sıfırlama request schema"""
+    token: str = Field(..., description="Şifre sıfırlama token'ı")
+    new_password: str = Field(..., min_length=8, description="Yeni şifre")
+    new_password_confirm: str = Field(..., min_length=8, description="Yeni şifre tekrar")
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_password_strength(cls, v):
+        """Şifre güvenlik kontrolü"""
+        if len(v) < 8:
+            raise ValueError('Şifre en az 8 karakter olmalıdır')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Şifre en az bir büyük harf içermelidir')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Şifre en az bir küçük harf içermelidir')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Şifre en az bir rakam içermelidir')
+        return v
+    
+    @field_validator('new_password_confirm')
+    @classmethod
+    def passwords_match(cls, v, info):
+        """Şifrelerin eşleşmesi kontrolü"""
+        if 'new_password' in info.data and v != info.data['new_password']:
+            raise ValueError('Şifreler eşleşmiyor')
+        return v

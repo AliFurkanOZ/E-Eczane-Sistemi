@@ -127,3 +127,22 @@ class AdminRepository:
             stats[durum.value] = count or 0
         
         return stats
+    
+    def get_all_doktorlar(self, is_active: Optional[bool] = None) -> List:
+        """Tüm doktorları getir (filtre ile)"""
+        from app.models.doktor import Doktor
+        
+        query = self.db.query(Doktor).options(joinedload(Doktor.user))
+        
+        if is_active is not None:
+            query = query.join(Doktor.user).filter(User.is_active == is_active)
+        
+        return query.order_by(Doktor.created_at.desc()).all()
+    
+    def get_doktor_by_id(self, doktor_id: str):
+        """ID'ye göre doktor getir"""
+        from app.models.doktor import Doktor
+        
+        return self.db.query(Doktor).options(
+            joinedload(Doktor.user)
+        ).filter(Doktor.id == doktor_id).first()

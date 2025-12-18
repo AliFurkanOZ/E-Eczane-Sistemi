@@ -31,6 +31,22 @@ class Stok(BaseModel):
             return "azaliyor"
         return "yeterli"
     
+    @property
+    def ilac_adi(self):
+        """İlaç adını döndür"""
+        return self.ilac.ad if self.ilac else "Bilinmiyor"
+    
+    @property
+    def ilac_barkod(self):
+        """İlaç barkodunu döndür"""
+        return self.ilac.barkod if self.ilac else ""
+    
+    @property
+    def ilac_fiyat(self):
+        """İlaç fiyatını döndür"""
+        return self.ilac.fiyat if self.ilac else 0
+    
     def __repr__(self):
         return f"<Stok(eczane_id={self.eczane_id}, ilac_id={self.ilac_id}, miktar={self.miktar})>"
+
 

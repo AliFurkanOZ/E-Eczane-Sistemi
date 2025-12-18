@@ -76,6 +76,36 @@ export const getOrderDetails = async (orderId) => {
   return response.data;
 };
 
+// Get all doctors
+export const getAllDoctors = async (params) => {
+  const response = await api.get('/api/admin/doktorlar', { params });
+  return response.data;
+};
+
+// Create doctor
+export const createDoctor = async (data) => {
+  const response = await api.post('/api/admin/doktorlar', data);
+  return response.data;
+};
+
+// Get doctor details
+export const getDoctorDetails = async (doktorId) => {
+  const response = await api.get(`/api/admin/doktorlar/${doktorId}`);
+  return response.data;
+};
+
+// Update doctor
+export const updateDoctor = async (doktorId, data) => {
+  const response = await api.put(`/api/admin/doktorlar/${doktorId}`, data);
+  return response.data;
+};
+
+// Update doctor status
+export const updateDoctorStatus = async (doktorId, data) => {
+  const response = await api.put(`/api/admin/doktorlar/${doktorId}/durum`, data);
+  return response.data;
+};
+
 export default {
   getProfile,
   getDashboardStats,
@@ -89,4 +119,9 @@ export default {
   updatePatientStatus,
   getAllOrders,
   getOrderDetails,
+  getAllDoctors,
+  createDoctor,
+  getDoctorDetails,
+  updateDoctor,
+  updateDoctorStatus,
 };

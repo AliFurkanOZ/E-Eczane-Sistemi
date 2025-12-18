@@ -92,6 +92,12 @@ def create_hastalar(db: Session):
     
     created = []
     for data in hastalar_data:
+        # Global TC No check
+        hasta_by_tc = db.query(Hasta).filter(Hasta.tc_no == data["tc_no"]).first()
+        if hasta_by_tc:
+            print(f"  ⚠️ TC No ({data['tc_no']}) zaten kayıtlı. Atlanıyor.")
+            continue
+
         existing = db.query(User).filter(User.email == data["email"]).first()
         if existing:
             print(f"  ⚠️ {data['email']} zaten mevcut, atlanıyor.")
@@ -138,6 +144,8 @@ def create_eczaneler(db: Session):
             "adres": "Kızılay Mah. Gazi Mustafa Kemal Blv. No:5, Çankaya/Ankara",
             "telefon": "312 111 11 11",
             "mahalle": "Kızılay",
+            "ilce": "Çankaya",
+            "il": "Ankara",
             "eczaci_adi": "Mehmet",
             "eczaci_soyadi": "Kaya",
             "eczaci_diploma_no": "DIP001",
@@ -153,6 +161,8 @@ def create_eczaneler(db: Session):
             "adres": "Bahçelievler Mah. 7. Cadde No:22, Yenimahalle/Ankara",
             "telefon": "312 222 22 22",
             "mahalle": "Bahçelievler",
+            "ilce": "Yenimahalle",
+            "il": "Ankara",
             "eczaci_adi": "Fatma",
             "eczaci_soyadi": "Öztürk",
             "eczaci_diploma_no": "DIP002",
@@ -168,6 +178,8 @@ def create_eczaneler(db: Session):
             "adres": "Etlik Mah. Hastane Cad. No:10, Keçiören/Ankara",
             "telefon": "312 333 33 33",
             "mahalle": "Etlik",
+            "ilce": "Keçiören",
+            "il": "Ankara",
             "eczaci_adi": "Ali",
             "eczaci_soyadi": "Yıldırım",
             "eczaci_diploma_no": "DIP003",
@@ -179,19 +191,39 @@ def create_eczaneler(db: Session):
     
     created = []
     for data in eczaneler_data:
-        existing = db.query(User).filter(User.email == data["email"]).first()
-        if existing:
-            print(f"  ⚠️ {data['email']} zaten mevcut, atlanıyor.")
+        # Global sicil_no check
+        eczane_by_sicil = db.query(Eczane).filter(Eczane.sicil_no == data["sicil_no"]).first()
+        if eczane_by_sicil:
+            print(f"  ⚠️ Sicil No ({data['sicil_no']}) zaten kayıtlı. Atlanıyor.")
             continue
+
+        existing_user = db.query(User).filter(User.email == data["email"]).first()
+        user_id = None
+        
+        if existing_user:
+            print(f"  ⚠️ {data['email']} kullanıcısı zaten mevcut.")
+            user_id = existing_user.id
             
-        user = User(
-            email=data["email"],
-            password_hash=get_password_hash(data["password"]),
-            user_type=UserType.ECZANE,
-            is_active=True
-        )
-        db.add(user)
-        db.flush()
+            # Check if Eczane record exists for this user
+            existing_eczane = db.query(Eczane).filter(Eczane.user_id == user_id).first()
+            if existing_eczane:
+                print(f"    ✅ Eczane kaydı da mevcut, atlanıyor.")
+                continue
+            else:
+                print(f"    ❌ Eczane kaydı EKSİK! Oluşturuluyor...")
+                user = existing_user  # Use existing user
+        else:
+            # Create new user
+            user = User(
+                email=data["email"],
+                password_hash=get_password_hash(data["password"]),
+                user_type=UserType.ECZANE,
+                is_active=True
+            )
+            db.add(user)
+            db.flush()
+            user_id = user.id
+
         
         eczane = Eczane(
             user_id=user.id,
@@ -200,6 +232,8 @@ def create_eczaneler(db: Session):
             adres=data["adres"],
             telefon=data["telefon"],
             mahalle=data["mahalle"],
+            ilce=data.get("ilce"),
+            il=data.get("il"),
             eczaci_adi=data["eczaci_adi"],
             eczaci_soyadi=data["eczaci_soyadi"],
             eczaci_diploma_no=data["eczaci_diploma_no"],
@@ -506,6 +540,9 @@ def main():
         print(f"\n❌ Hata: {e}")
         import traceback
         traceback.print_exc()
+        # Print cause if available
+        if hasattr(e, 'orig'):
+            print(f"Original error: {e.orig}")
         db.rollback()
     finally:
         db.close()

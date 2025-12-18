@@ -1,56 +1,25 @@
-#!/usr/bin/env python3
-"""
-Login test script
-"""
-
+# -*- coding: utf-8 -*-
+"""Test login via HTTP request"""
 import requests
 import json
 
-def test_login():
-    """Test login for different user types"""
-    
-    # Test data
-    test_cases = [
-        {
-            "name": "Admin Login",
-            "data": {
-                "identifier": "admin@eczane.com",
-                "password": "Admin123!",
-                "user_type": "admin"
-            }
-        },
-        {
-            "name": "Hasta Login",
-            "data": {
-                "identifier": "12345678901",
-                "password": "SecurePass123!",
-                "user_type": "hasta"
-            }
-        },
-        {
-            "name": "Eczane Login",
-            "data": {
-                "identifier": "TEST123456",
-                "password": "Test123!",
-                "user_type": "eczane"
-            }
-        }
-    ]
-    
-    url = "http://localhost:8000/api/auth/login"
-    
-    for case in test_cases:
-        print(f"\n--- {case['name']} ---")
-        try:
-            response = requests.post(url, json=case['data'])
-            print(f"Status Code: {response.status_code}")
-            if response.status_code == 200:
-                print("✅ Başarılı")
-                print(f"Token: {response.json().get('access_token')[:20]}...")
-            else:
-                print(f"❌ Hata: {response.text}")
-        except Exception as e:
-            print(f"❌ Bağlantı hatası: {e}")
+BASE_URL = "http://localhost:8000"
 
-if __name__ == "__main__":
-    test_login()
+print("=" * 50)
+print("DOKTOR LOGIN TESTI (HTTP)")
+print("=" * 50)
+
+# Login request
+print("\nLogin denemesi...")
+try:
+    response = requests.post(f"{BASE_URL}/api/auth/login", json={
+        "identifier": "test.doktor@hospital.com",
+        "password": "Test123!",
+        "user_type": "doktor"
+    })
+    print(f"Status: {response.status_code}")
+    print(f"Response: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
+except Exception as e:
+    print(f"Hata: {e}")
+
+print("\n" + "=" * 50)

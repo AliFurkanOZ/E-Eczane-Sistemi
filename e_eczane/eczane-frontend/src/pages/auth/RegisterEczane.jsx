@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { registerEczane } from '../../redux/slices/authSlice';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import AddressSelector from '../../components/common/AddressSelector';
 import { Building2, ArrowLeft, CheckCircle } from 'lucide-react';
 
 // Error Boundary Component
@@ -61,14 +62,12 @@ const RegisterEczane = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading } = useSelector((state) => state.auth);
-  
+
   const [formData, setFormData] = useState({
     sicil_no: '',
     eczane_adi: '',
     email: '',
     telefon: '',
-    adres: '',
-    mahalle: '',
     eczaci_adi: '',
     eczaci_soyadi: '',
     eczaci_diploma_no: '',
@@ -77,77 +76,106 @@ const RegisterEczane = () => {
     password: '',
     passwordConfirm: '',
   });
-  
+
+  const [addressData, setAddressData] = useState({
+    il: '',
+    ilce: '',
+    mahalle: '',
+    adres: ''
+  });
+
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user types
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
+  const handleAddressChange = (newAddress) => {
+    setAddressData(newAddress);
+    // Clear address errors
+    setErrors((prev) => ({
+      ...prev,
+      il: '',
+      ilce: '',
+      mahalle: '',
+      adres: ''
+    }));
+  };
+
   const validate = () => {
     const newErrors = {};
-    
+
     // Sicil No validation
     if (!formData.sicil_no.trim()) {
       newErrors.sicil_no = 'Sicil numarası zorunludur';
     }
-    
+
     // Eczane Adı validation
     if (!formData.eczane_adi.trim()) {
       newErrors.eczane_adi = 'Eczane adı zorunludur';
     }
-    
+
     // Email validation
     if (!formData.email) {
       newErrors.email = 'E-posta zorunludur';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Geçerli bir e-posta adresi giriniz';
     }
-    
+
     // Phone validation
     if (!formData.telefon) {
       newErrors.telefon = 'Telefon zorunludur';
+    } else if (!/^\d{10,11}$/.test(formData.telefon.replace(/\s/g, ''))) {
+      newErrors.telefon = 'Telefon numarası 10-11 hane ve sadece rakam olmalıdır';
     }
-    
+
     // Address validation
-    if (!formData.adres.trim()) {
-      newErrors.adres = 'Adres zorunludur';
-    } else if (formData.adres.trim().length < 10) {
-      newErrors.adres = 'Adres en az 10 karakter olmalıdır';
+    if (!addressData.il) {
+      newErrors.il = 'İl seçimi zorunludur';
     }
-    
-    // Mahalle validation
-    if (!formData.mahalle.trim()) {
-      newErrors.mahalle = 'Mahalle zorunludur';
+    if (!addressData.ilce) {
+      newErrors.ilce = 'İlçe seçimi zorunludur';
     }
-    
+    if (!addressData.mahalle) {
+      newErrors.mahalle = 'Mahalle seçimi zorunludur';
+    }
+    if (!addressData.adres || !addressData.adres.trim()) {
+      newErrors.adres = 'Sokak/Cadde adresi zorunludur';
+    } else if (addressData.adres.trim().length < 5) {
+      newErrors.adres = 'Adres en az 5 karakter olmalıdır';
+    }
+
     // Eczacı Adı validation
     if (!formData.eczaci_adi.trim()) {
       newErrors.eczaci_adi = 'Eczacı adı zorunludur';
     }
-    
+
     // Eczacı Soyadı validation
     if (!formData.eczaci_soyadi.trim()) {
       newErrors.eczaci_soyadi = 'Eczacı soyadı zorunludur';
     }
-    
+
     // Diploma No validation
     if (!formData.eczaci_diploma_no.trim()) {
       newErrors.eczaci_diploma_no = 'Diploma numarası zorunludur';
     }
-    
+
     // Banka Hesap No validation
     if (!formData.banka_hesap_no.trim()) {
       newErrors.banka_hesap_no = 'Banka hesap numarası zorunludur';
+    } else if (!/^\d+$/.test(formData.banka_hesap_no.trim())) {
+      newErrors.banka_hesap_no = 'Banka hesap numarası sadece rakam içermelidir';
+    } else if (formData.banka_hesap_no.trim().length < 10) {
+      newErrors.banka_hesap_no = 'Banka hesap numarası en az 10 hane olmalıdır';
     }
-    
+
     // IBAN validation
     if (!formData.iban.trim()) {
       newErrors.iban = 'IBAN zorunludur';
@@ -157,66 +185,94 @@ const RegisterEczane = () => {
         newErrors.iban = 'Geçerli bir TR IBAN giriniz (TR + 24 hane)';
       }
     }
-    
+
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Şifre zorunludur';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Şifre en az 6 karakter olmalıdır';
     }
-    
+
     // Password confirm validation
     if (formData.password !== formData.passwordConfirm) {
       newErrors.passwordConfirm = 'Şifreler eşleşmiyor';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     console.log('Form submission started');
-    
+
     if (!validate()) {
       console.log('Form validation failed');
       return;
     }
-    
+
     try {
       console.log('Starting registration process');
       // Format IBAN (remove spaces, uppercase)
       const formattedIban = formData.iban.replace(/\s/g, '').toUpperCase();
       console.log('Formatted IBAN:', formattedIban);
-      
+
+      // Combine address
+      const fullAddress = `${addressData.adres}, ${addressData.mahalle}, ${addressData.ilce}/${addressData.il}`;
+
       console.log('Dispatching registerEczane action');
-      const result = await dispatch(registerEczane({
+      const registrationData = {
         sicil_no: formData.sicil_no,
         eczane_adi: formData.eczane_adi,
         email: formData.email,
         telefon: formData.telefon,
-        adres: formData.adres,
-        mahalle: formData.mahalle,
+        adres: fullAddress,
+        mahalle: addressData.mahalle,
         eczaci_adi: formData.eczaci_adi,
         eczaci_soyadi: formData.eczaci_soyadi,
         eczaci_diploma_no: formData.eczaci_diploma_no,
         banka_hesap_no: formData.banka_hesap_no,
         iban: formattedIban,
         password: formData.password,
-      })).unwrap();
-      
+      };
+      console.log('Registration data:', registrationData);
+
+      const result = await dispatch(registerEczane(registrationData)).unwrap();
+
       console.log('Registration successful, result:', result);
-      
+
       // Show success screen
       console.log('Setting success state to true');
       setSuccess(true);
       console.log('Success state set');
     } catch (error) {
       console.error('Registration error:', error);
-      // Set a general error message for the user
+      // Parse error message properly - handle Pydantic validation errors
+      let errorMessage = 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyiniz.';
+
+      if (error) {
+        if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error.detail) {
+          // Handle Pydantic validation errors (array format)
+          if (Array.isArray(error.detail)) {
+            errorMessage = error.detail
+              .map(err => err.msg || err.message || JSON.stringify(err))
+              .join('. ');
+          } else {
+            errorMessage = error.detail;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      }
+
       setErrors(prev => ({
         ...prev,
-        general: error.message || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyiniz.'
+        general: errorMessage
       }));
     }
   };
@@ -234,7 +290,7 @@ const RegisterEczane = () => {
               Kayıt Başarılı!
             </h2>
             <p className="text-gray-600 mb-6">
-              Eczane kaydınız oluşturuldu. Admin onayı bekleniyor. 
+              Eczane kaydınız oluşturuldu. Admin onayı bekleniyor.
               Onaylandıktan sonra sisteme giriş yapabileceksiniz.
             </p>
             <Button
@@ -277,7 +333,7 @@ const RegisterEczane = () => {
 
         {/* Register Form */}
         <div className="bg-white rounded-xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} action="#" className="space-y-8">
             {/* Eczane Bilgileri */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -324,24 +380,16 @@ const RegisterEczane = () => {
                 />
               </div>
               <div className="mt-4">
-                <Input
-                  label="Adres"
-                  name="adres"
-                  placeholder="Sokak, No, İl/İlçe"
-                  value={formData.adres}
-                  onChange={handleChange}
-                  error={errors.adres}
-                  required
-                />
-              </div>
-              <div className="mt-4">
-                <Input
-                  label="Mahalle"
-                  name="mahalle"
-                  placeholder="Kızılay"
-                  value={formData.mahalle}
-                  onChange={handleChange}
-                  error={errors.mahalle}
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Konum Bilgileri</h4>
+                <AddressSelector
+                  value={addressData}
+                  onChange={handleAddressChange}
+                  errors={{
+                    il: errors.il,
+                    ilce: errors.ilce,
+                    mahalle: errors.mahalle,
+                    adres: errors.adres
+                  }}
                   required
                 />
               </div>

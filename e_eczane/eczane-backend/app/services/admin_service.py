@@ -5,8 +5,10 @@ from app.models.user import User
 from app.models.eczane import Eczane
 from app.models.hasta import Hasta
 from app.models.admin import Admin
+from app.models.doktor import Doktor
 from app.models.bildirim import Bildirim
-from app.schemas.admin import AdminCreate, EczaneOnayAction, KullaniciYonetim
+from app.schemas.admin import AdminCreate, EczaneOnayAction, KullaniciYonetim, DoktorDuzenle
+from app.schemas.doktor import DoktorCreate
 from app.repositories.admin_repository import AdminRepository
 from app.utils.enums import OnayDurumu, UserType, BildirimTip
 from app.core.security import get_password_hash
@@ -212,3 +214,67 @@ class AdminService:
         self.db.refresh(user)
         
         return user
+    
+    def create_doktor(self, doktor_data: DoktorCreate) -> Doktor:
+        """
+        Admin tarafından yeni doktor oluştur
+        """
+        existing_user = self.db.query(User).filter(User.email == doktor_data.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Bu email adresi zaten kullanılıyor"
+            )
+        
+        existing_doktor = self.db.query(Doktor).filter(Doktor.diploma_no == doktor_data.diploma_no).first()
+        if existing_doktor:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Bu diploma numarası zaten kayıtlı"
+            )
+        
+        user = User(
+            email=doktor_data.email,
+            password_hash=get_password_hash(doktor_data.password),
+            user_type=UserType.DOKTOR,
+            is_active=True
+        )
+        self.db.add(user)
+        self.db.flush()
+        
+        doktor = Doktor(
+            user_id=user.id,
+            diploma_no=doktor_data.diploma_no,
+            ad=doktor_data.ad,
+            soyad=doktor_data.soyad,
+            uzmanlik=doktor_data.uzmanlik,
+            hastane=doktor_data.hastane,
+            telefon=doktor_data.telefon
+        )
+        self.db.add(doktor)
+        self.db.commit()
+        self.db.refresh(doktor)
+        
+        return doktor
+    
+    def update_doktor(self, doktor_id: str, doktor_data: DoktorDuzenle) -> Doktor:
+        """
+        Doktor bilgilerini güncelle
+        """
+        doktor = self.admin_repo.get_doktor_by_id(doktor_id)
+        
+        if not doktor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Doktor bulunamadı"
+            )
+        
+        update_data = doktor_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            if value is not None:
+                setattr(doktor, field, value)
+        
+        self.db.commit()
+        self.db.refresh(doktor)
+        
+        return doktor

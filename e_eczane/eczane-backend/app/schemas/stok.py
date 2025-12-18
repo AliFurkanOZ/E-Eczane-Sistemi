@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
+from uuid import UUID
 
 
 class StokBase(BaseModel):
@@ -22,18 +23,25 @@ class StokUpdate(BaseModel):
     min_stok: Optional[int] = Field(None, ge=0, description="Yeni minimum stok seviyesi")
 
 
-class StokResponse(StokBase):
+class StokResponse(BaseModel):
     """Stok response"""
     model_config = ConfigDict(from_attributes=True)
     
-    id: str
-    eczane_id: str
+    id: UUID
+    eczane_id: UUID
+    ilac_id: UUID
+    miktar: int
+    min_stok: int
     stok_durumu: str = Field(..., description="Stok durumu: tukendi, azaliyor, yeterli")
     ilac_adi: str
     ilac_barkod: str
     ilac_fiyat: Decimal
     created_at: datetime
     updated_at: datetime
+    
+    @field_serializer('id', 'eczane_id', 'ilac_id')
+    def serialize_uuid(self, value: UUID) -> str:
+        return str(value)
 
 
 class StokUyari(BaseModel):

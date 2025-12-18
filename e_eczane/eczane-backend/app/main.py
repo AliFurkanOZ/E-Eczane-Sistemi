@@ -7,7 +7,7 @@ from app.core.database import get_db, engine, Base
 
 # Import ALL models to create tables
 from app.models import (
-    User, Hasta, Eczane, Admin,
+    User, Hasta, Eczane, Admin, Doktor,
     Ilac, MuadilIlac,
     Recete, ReceteIlac,
     Stok,
@@ -16,7 +16,7 @@ from app.models import (
 )
 
 # Import routers
-from app.routers import auth, hasta, eczane, admin
+from app.routers import auth, hasta, eczane, admin, doktor
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -45,6 +45,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(hasta.router, prefix="/api/hasta", tags=["Hasta"])
 app.include_router(eczane.router, prefix="/api/eczane", tags=["Eczane"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+app.include_router(doktor.router, prefix="/api/doktor", tags=["Doktor"])
 
 
 @app.get("/")

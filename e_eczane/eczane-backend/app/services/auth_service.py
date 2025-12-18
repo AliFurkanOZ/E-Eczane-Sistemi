@@ -4,11 +4,17 @@ from fastapi import HTTPException, status
 from app.models.user import User
 from app.models.hasta import Hasta
 from app.models.eczane import Eczane
+from app.models.doktor import Doktor
 from app.schemas.auth import UserLogin, Token
 from app.schemas.hasta import HastaCreate
 from app.schemas.eczane import EczaneCreate
-from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token
+from app.schemas.doktor import DoktorCreate
+from app.core.security import (
+    verify_password, get_password_hash, create_access_token, 
+    create_refresh_token, create_password_reset_token, verify_password_reset_token
+)
 from app.utils.enums import UserType, OnayDurumu
+from app.utils.email import send_password_reset_email
 from datetime import timedelta
 from app.core.config import settings
 
@@ -58,6 +64,14 @@ class AuthService:
         # Eczane ise onay durumu kontrol et
         if user.user_type == UserType.ECZANE:
             eczane = self.db.query(Eczane).filter(Eczane.user_id == user.id).first()
+            
+            if not eczane:
+                # Eczane kaydı bulunamadı (büyük sorun, admin ile görüşmeli)
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Eczane profiliniz bulunamadı. Lütfen sistem yöneticisi ile iletişime geçin."
+                )
+                
             if eczane.onay_durumu != OnayDurumu.ONAYLANDI:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -89,15 +103,6 @@ class AuthService:
     def register_hasta(self, hasta_data: HastaCreate) -> Hasta:
         """
         Hasta kaydı
-        
-        Args:
-            hasta_data: Hasta bilgileri
-        
-        Returns:
-            Hasta: Oluşturulan hasta kaydı
-        
-        Raises:
-            HTTPException: Email veya TC No zaten kullanımda
         """
         # Email kontrolü
         existing_user = self.db.query(User).filter(User.email == hasta_data.email).first()
@@ -123,7 +128,7 @@ class AuthService:
             is_active=True
         )
         self.db.add(user)
-        self.db.flush()  # ID'yi al
+        self.db.flush()
         
         # Hasta oluştur
         hasta = Hasta(
@@ -144,15 +149,6 @@ class AuthService:
     def register_eczane(self, eczane_data: EczaneCreate) -> Eczane:
         """
         Eczane kaydı (Onay beklemede olarak)
-        
-        Args:
-            eczane_data: Eczane bilgileri
-        
-        Returns:
-            Eczane: Oluşturulan eczane kaydı
-        
-        Raises:
-            HTTPException: Email veya Sicil No zaten kullanımda
         """
         # Email kontrolü
         existing_user = self.db.query(User).filter(User.email == eczane_data.email).first()
@@ -201,16 +197,55 @@ class AuthService:
         
         return eczane
     
+    def register_doktor(self, doktor_data: DoktorCreate) -> Doktor:
+        """
+        Doktor kaydı (Direkt aktif)
+        """
+        # Email kontrolü
+        existing_user = self.db.query(User).filter(User.email == doktor_data.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Bu email adresi zaten kullanılıyor"
+            )
+        
+        # Diploma No kontrolü
+        existing_doktor = self.db.query(Doktor).filter(Doktor.diploma_no == doktor_data.diploma_no).first()
+        if existing_doktor:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Bu diploma numarası zaten kayıtlı"
+            )
+        
+        # User oluştur
+        user = User(
+            email=doktor_data.email,
+            password_hash=get_password_hash(doktor_data.password),
+            user_type=UserType.DOKTOR,
+            is_active=True
+        )
+        self.db.add(user)
+        self.db.flush()
+        
+        # Doktor oluştur
+        doktor = Doktor(
+            user_id=user.id,
+            diploma_no=doktor_data.diploma_no,
+            ad=doktor_data.ad,
+            soyad=doktor_data.soyad,
+            uzmanlik=doktor_data.uzmanlik,
+            hastane=doktor_data.hastane,
+            telefon=doktor_data.telefon
+        )
+        self.db.add(doktor)
+        self.db.commit()
+        self.db.refresh(doktor)
+        
+        return doktor
+    
     def _find_user_by_identifier(self, identifier: str, user_type: UserType) -> Optional[User]:
         """
-        Identifier'a göre kullanıcı bul (Email, TC No veya Sicil No)
-        
-        Args:
-            identifier: Email, TC No veya Sicil No
-            user_type: Kullanıcı tipi
-        
-        Returns:
-            User: Bulunan kullanıcı veya None
+        Identifier'a göre kullanıcı bul (Email, TC No, Sicil No veya Diploma No)
         """
         # Önce email ile dene
         user = self.db.query(User).filter(
@@ -233,4 +268,65 @@ class AuthService:
             if eczane:
                 return self.db.query(User).filter(User.id == eczane.user_id).first()
         
+        # Diploma No ile dene (Doktor ise)
+        if user_type == UserType.DOKTOR:
+            doktor = self.db.query(Doktor).filter(Doktor.diploma_no == identifier).first()
+            if doktor:
+                return self.db.query(User).filter(User.id == doktor.user_id).first()
+        
         return None
+    
+    def forgot_password(self, email: str) -> dict:
+        """
+        Şifre sıfırlama e-postası gönder
+        
+        Güvenlik nedeniyle her zaman aynı yanıtı döner
+        """
+        user = self.db.query(User).filter(User.email == email).first()
+        
+        if user:
+            token = create_password_reset_token(email)
+            send_password_reset_email(email, token)
+        
+        return {
+            "message": "Eğer bu e-posta adresi sistemimizde kayıtlıysa, şifre sıfırlama linki gönderildi."
+        }
+    
+    def reset_password(self, token: str, new_password: str) -> dict:
+        """
+        Token ile şifre sıfırlama
+        """
+        email = verify_password_reset_token(token)
+        
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Geçersiz veya süresi dolmuş token"
+            )
+        
+        user = self.db.query(User).filter(User.email == email).first()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Kullanıcı bulunamadı"
+            )
+        
+        user.password_hash = get_password_hash(new_password)
+        self.db.commit()
+        
+        return {"message": "Şifreniz başarıyla değiştirildi"}
+    
+    def verify_reset_token(self, token: str) -> dict:
+        """
+        Şifre sıfırlama token'ının geçerliliğini kontrol et
+        """
+        email = verify_password_reset_token(token)
+        
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Geçersiz veya süresi dolmuş token"
+            )
+        
+        return {"valid": True, "email": email}

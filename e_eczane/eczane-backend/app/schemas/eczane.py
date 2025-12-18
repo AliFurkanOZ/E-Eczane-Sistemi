@@ -13,6 +13,8 @@ class EczaneBase(BaseModel):
     adres: str = Field(..., min_length=10, max_length=500)
     telefon: str = Field(..., min_length=10, max_length=20)
     mahalle: str = Field(..., min_length=2, max_length=100)
+    ilce: Optional[str] = Field(None, max_length=100)
+    il: Optional[str] = Field(None, max_length=100)
     
     eczaci_adi: str = Field(..., min_length=2, max_length=100)
     eczaci_soyadi: str = Field(..., min_length=2, max_length=100)
@@ -32,6 +34,27 @@ class EczaneBase(BaseModel):
         if len(iban) != 26:
             raise ValueError('IBAN 26 karakter olmalıdır (boşluksuz)')
         return iban
+    
+    @field_validator('banka_hesap_no')
+    @classmethod
+    def validate_banka_hesap_no(cls, v):
+        """Banka hesap numarası sadece rakam olmalı"""
+        cleaned = v.strip()
+        if not cleaned.isdigit():
+            raise ValueError('Banka hesap numarası sadece rakam içermelidir')
+        if len(cleaned) < 10:
+            raise ValueError('Banka hesap numarası en az 10 hane olmalıdır')
+        return cleaned
+    
+    @field_validator('telefon')
+    @classmethod
+    def validate_telefon(cls, v):
+        """Telefon numarası sadece rakam olmalı"""
+        # Boşlukları ve tire işaretlerini temizle
+        cleaned = ''.join(filter(str.isdigit, v))
+        if len(cleaned) < 10 or len(cleaned) > 11:
+            raise ValueError('Telefon numarası 10-11 hane olmalıdır')
+        return cleaned
 
 
 class EczaneCreate(EczaneBase):
@@ -44,6 +67,8 @@ class EczaneCreate(EczaneBase):
                 "adres": "Kızılay Meydanı No:45 Çankaya/ANKARA",
                 "telefon": "03121234567",
                 "mahalle": "Kızılay",
+                "ilce": "Çankaya",
+                "il": "Ankara",
                 "eczaci_adi": "Mehmet",
                 "eczaci_soyadi": "Demir",
                 "eczaci_diploma_no": "ECZ123456",
@@ -65,6 +90,8 @@ class EczaneUpdate(BaseModel):
     adres: Optional[str] = None
     telefon: Optional[str] = None
     mahalle: Optional[str] = None
+    ilce: Optional[str] = None
+    il: Optional[str] = None
     banka_hesap_no: Optional[str] = None
     iban: Optional[str] = None
 

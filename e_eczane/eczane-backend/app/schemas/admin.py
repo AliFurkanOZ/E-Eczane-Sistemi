@@ -43,6 +43,7 @@ class EczaneOnayDetay(BaseModel):
     iban: str
     onay_durumu: str
     onay_notu: Optional[str]
+    is_active: bool
     created_at: datetime
 
 
@@ -84,3 +85,31 @@ class SiparisIstatistik(BaseModel):
     yolda: int
     teslim_edildi: int
     iptal_edildi: int
+
+
+class DoktorDetay(BaseModel):
+    """Doktor detay bilgisi (Admin için)"""
+    id: str
+    user_id: str
+    diploma_no: str
+    ad: str
+    soyad: str
+    uzmanlik: Optional[str] = None
+    hastane: Optional[str] = None
+    telefon: Optional[str] = None
+    email: str
+    tam_ad: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DoktorDuzenle(BaseModel):
+    """Doktor bilgi güncelleme (Admin için)"""
+    ad: Optional[str] = Field(None, min_length=2, max_length=100)
+    soyad: Optional[str] = Field(None, min_length=2, max_length=100)
+    uzmanlik: Optional[str] = Field(None, max_length=100)
+    hastane: Optional[str] = Field(None, max_length=200)
+    telefon: Optional[str] = Field(None, max_length=20)

@@ -70,6 +70,7 @@ class HastaResponse(HastaBase):
     
     id: UUID
     user_id: UUID
+    is_active: bool = True
     created_at: datetime
     updated_at: datetime
     

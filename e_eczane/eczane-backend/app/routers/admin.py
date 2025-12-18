@@ -9,6 +9,7 @@ from app.models.eczane import Eczane
 from app.models.hasta import Hasta
 from app.models.admin import Admin
 from app.models.siparis import Siparis
+from app.models.doktor import Doktor
 from app.schemas.admin import (
     AdminResponse,
     EczaneOnayDetay,
@@ -16,10 +17,13 @@ from app.schemas.admin import (
     KullaniciYonetim,
     DashboardIstatistik,
     SiparisIstatistik,
+    DoktorDetay,
+    DoktorDuzenle,
 )
 from app.schemas.eczane import EczaneResponse
 from app.schemas.hasta import HastaResponse
 from app.schemas.siparis import SiparisResponse, SiparisDetayItem
+from app.schemas.doktor import DoktorCreate, DoktorResponse
 from app.services.admin_service import AdminService
 from app.repositories.admin_repository import AdminRepository
 from app.utils.enums import OnayDurumu, SiparisDurum
@@ -102,6 +106,7 @@ def get_bekleyen_eczaneler(
             iban=eczane.iban,
             onay_durumu=eczane.onay_durumu.value,
             onay_notu=eczane.onay_notu,
+            is_active=eczane.user.is_active,
             created_at=eczane.created_at
         ))
     
@@ -147,6 +152,7 @@ def get_all_eczaneler(
             iban=eczane.iban,
             onay_durumu=eczane.onay_durumu.value,
             onay_notu=eczane.onay_notu,
+            is_active=eczane.user.is_active,
             created_at=eczane.created_at
         ))
     
@@ -223,6 +229,7 @@ def get_all_hastalar(
             adres=hasta.adres,
             telefon=hasta.telefon,
             profil_resmi_url=hasta.profil_resmi_url,
+            is_active=hasta.user.is_active,
             created_at=hasta.created_at,
             updated_at=hasta.updated_at
         ))
@@ -358,3 +365,142 @@ def get_siparis_detay(
             ) for d in siparis.detaylar
         ]
     )
+
+
+@router.get("/doktorlar", response_model=List[DoktorDetay], summary="Tüm Doktorlar")
+def get_all_doktorlar(
+    is_active: Optional[bool] = Query(None, description="true: aktif, false: pasif"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """Tüm doktorları listele (filtre ile)"""
+    admin_repo = AdminRepository(db)
+    doktorlar = admin_repo.get_all_doktorlar(is_active)
+    
+    result = []
+    for doktor in doktorlar:
+        result.append(DoktorDetay(
+            id=str(doktor.id),
+            user_id=str(doktor.user_id),
+            diploma_no=doktor.diploma_no,
+            ad=doktor.ad,
+            soyad=doktor.soyad,
+            uzmanlik=doktor.uzmanlik,
+            hastane=doktor.hastane,
+            telefon=doktor.telefon,
+            email=doktor.user.email,
+            tam_ad=doktor.tam_ad,
+            is_active=doktor.user.is_active,
+            created_at=doktor.created_at
+        ))
+    
+    return result
+
+
+@router.post("/doktorlar", response_model=DoktorResponse, summary="Doktor Ekle")
+def create_doktor(
+    doktor_data: DoktorCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """Yeni doktor ekle"""
+    admin_service = AdminService(db)
+    doktor = admin_service.create_doktor(doktor_data)
+    
+    return DoktorResponse(
+        id=str(doktor.id),
+        user_id=str(doktor.user_id),
+        diploma_no=doktor.diploma_no,
+        ad=doktor.ad,
+        soyad=doktor.soyad,
+        uzmanlik=doktor.uzmanlik,
+        hastane=doktor.hastane,
+        telefon=doktor.telefon,
+        tam_ad=doktor.tam_ad,
+        created_at=doktor.created_at
+    )
+
+
+@router.get("/doktorlar/{doktor_id}", response_model=DoktorDetay, summary="Doktor Detay")
+def get_doktor_detay(
+    doktor_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """Doktor detaylarını görüntüle"""
+    admin_repo = AdminRepository(db)
+    doktor = admin_repo.get_doktor_by_id(doktor_id)
+    
+    if not doktor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Doktor bulunamadı"
+        )
+    
+    return DoktorDetay(
+        id=str(doktor.id),
+        user_id=str(doktor.user_id),
+        diploma_no=doktor.diploma_no,
+        ad=doktor.ad,
+        soyad=doktor.soyad,
+        uzmanlik=doktor.uzmanlik,
+        hastane=doktor.hastane,
+        telefon=doktor.telefon,
+        email=doktor.user.email,
+        tam_ad=doktor.tam_ad,
+        is_active=doktor.user.is_active,
+        created_at=doktor.created_at
+    )
+
+
+@router.put("/doktorlar/{doktor_id}", response_model=DoktorDetay, summary="Doktor Güncelle")
+def update_doktor(
+    doktor_id: str,
+    doktor_data: DoktorDuzenle,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """Doktor bilgilerini güncelle"""
+    admin_service = AdminService(db)
+    doktor = admin_service.update_doktor(doktor_id, doktor_data)
+    
+    return DoktorDetay(
+        id=str(doktor.id),
+        user_id=str(doktor.user_id),
+        diploma_no=doktor.diploma_no,
+        ad=doktor.ad,
+        soyad=doktor.soyad,
+        uzmanlik=doktor.uzmanlik,
+        hastane=doktor.hastane,
+        telefon=doktor.telefon,
+        email=doktor.user.email,
+        tam_ad=doktor.tam_ad,
+        is_active=doktor.user.is_active,
+        created_at=doktor.created_at
+    )
+
+
+@router.put("/doktorlar/{doktor_id}/durum", summary="Doktor Durumu Güncelle")
+def update_doktor_durum(
+    doktor_id: str,
+    yonetim_data: KullaniciYonetim,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """Doktor aktif/pasif durumunu güncelle"""
+    admin_repo = AdminRepository(db)
+    doktor = admin_repo.get_doktor_by_id(doktor_id)
+    
+    if not doktor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Doktor bulunamadı"
+        )
+    
+    admin_service = AdminService(db)
+    user = admin_service.update_kullanici_durum(str(doktor.user_id), yonetim_data)
+    
+    return {
+        "message": "Doktor durumu güncellendi",
+        "is_active": user.is_active
+    }

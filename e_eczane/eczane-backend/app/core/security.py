@@ -105,6 +105,50 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
     return encoded_jwt
 
 
+def create_password_reset_token(email: str) -> str:
+    """
+    Şifre sıfırlama token'ı oluştur (1 saatlik)
+    
+    Args:
+        email: Kullanıcının email adresi
+    
+    Returns:
+        str: JWT password reset token
+    """
+    expire = datetime.now(timezone.utc) + timedelta(hours=1)
+    to_encode = {
+        "email": email,
+        "exp": expire,
+        "type": "password_reset"
+    }
+    
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
+def verify_password_reset_token(token: str) -> Optional[str]:
+    """
+    Şifre sıfırlama token'ını doğrula
+    
+    Args:
+        token: Doğrulanacak JWT token
+    
+    Returns:
+        str: Token geçerliyse email adresi, değilse None
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        
+        if payload.get("type") != "password_reset":
+            return None
+        
+        email = payload.get("email")
+        return email
+        
+    except JWTError:
+        return None
+
+
 
 
 

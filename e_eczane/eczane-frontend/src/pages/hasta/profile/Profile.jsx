@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../../components/common/Button';
+import { User, ArrowLeft, Save, Mail, Phone, MapPin, CreditCard, RefreshCw } from 'lucide-react';
+import toast from 'react-hot-toast';
+import MainLayout from '../../../components/layout/MainLayout';
+import HastaSidebar from '../../../components/layout/HastaSidebar';
+import Card, { CardBody, CardHeader } from '../../../components/ui/Card';
+import Button from '../../../components/ui/Button';
 import Loading from '../../../components/common/Loading';
 import * as hastaApi from '../../../api/hastaApi';
-import { User, ArrowLeft, Save } from 'lucide-react';
-import HastaSidebar from '../../../components/layout/HastaSidebar';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  
+
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     ad: '',
     soyad: '',
@@ -44,26 +45,14 @@ const Profile = () => {
       });
     } catch (err) {
       console.error('Error fetching profile:', err);
-      setError('Profil bilgileri yüklenirken bir hata oluştu. Demo verileri gösteriliyor.');
-      
-      // Set mock data to prevent blank screen
-      const mockProfile = {
-        ad: user?.name || 'Demo Kullanıcı',
-        soyad: '',
-        tc_no: '12345678901',
-        email: user?.email || 'demo@example.com',
-        telefon: '555 123 45 67',
-        adres: 'Demo Adres, Ankara',
-        created_at: new Date().toISOString()
-      };
-      
-      setProfile(mockProfile);
+      setError('Profil bilgileri yüklenirken bir hata oluştu.');
+      // Set basic data from auth state
       setFormData({
-        ad: mockProfile.ad,
-        soyad: mockProfile.soyad,
-        adres: mockProfile.adres,
-        telefon: mockProfile.telefon,
-        email: mockProfile.email
+        ad: user?.name?.split(' ')[0] || '',
+        soyad: user?.name?.split(' ').slice(1).join(' ') || '',
+        adres: '',
+        telefon: '',
+        email: user?.email || ''
       });
     } finally {
       setLoading(false);
@@ -81,9 +70,7 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setSuccess(false);
-    setError(null);
-    
+
     try {
       const updateData = {
         ad: formData.ad,
@@ -91,222 +78,226 @@ const Profile = () => {
         adres: formData.adres,
         telefon: formData.telefon
       };
-      
-      // Only include email if it's different (as it might not be updatable)
-      if (formData.email !== profile.email) {
+
+      if (formData.email !== profile?.email) {
         updateData.email = formData.email;
       }
-      
+
       await hastaApi.updateProfile(updateData);
-      setSuccess(true);
-      
-      // Refresh profile data
+      toast.success('Profil bilgileriniz başarıyla güncellendi');
       fetchProfile();
     } catch (err) {
-      setError('Profil güncellenirken bir hata oluştu: ' + err.message);
       console.error('Error updating profile:', err);
+      toast.error('Profil güncellenirken bir hata oluştu');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <HastaSidebar />
-      
-      <div className="md:pl-64 flex flex-col flex-1">
-        <main className="flex-1">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-              <div className="bg-white rounded-lg shadow">
-                <div className="px-6 py-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h1 className="text-2xl font-bold text-gray-900">
-                        Profilim
-                      </h1>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Kişisel bilgilerinizi güncelleyin
-                      </p>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      onClick={() => navigate('/hasta/dashboard')}
-                      className="flex items-center gap-2"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      Dashboard
-                    </Button>
+    <MainLayout sidebar={<HastaSidebar />}>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">
+            Profilim
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Kişisel bilgilerinizi görüntüleyin ve güncelleyin.
+          </p>
+        </div>
+        <div className="mt-4 md:mt-0 flex items-center gap-3">
+          <Button
+            variant="secondary"
+            onClick={fetchProfile}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => navigate('/hasta/dashboard')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Dashboard
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <Card>
+          <CardBody className="py-16">
+            <div className="flex justify-center">
+              <Loading />
+            </div>
+          </CardBody>
+        </Card>
+      ) : (
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <Card>
+            <CardBody className="text-center py-8">
+              <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <User className="w-12 h-12 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800">
+                {formData.ad} {formData.soyad}
+              </h3>
+              <p className="text-slate-500 text-sm mt-1">{formData.email}</p>
+
+              {profile?.tc_no && (
+                <div className="mt-4 p-3 bg-slate-50 rounded-xl">
+                  <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
+                    <CreditCard className="w-4 h-4" />
+                    <span className="font-medium">TC: {profile.tc_no}</span>
                   </div>
                 </div>
+              )}
 
-                <div className="px-6 py-6">
-                  {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                      <Loading />
+              {profile?.created_at && (
+                <p className="text-xs text-slate-400 mt-4">
+                  Üyelik: {new Date(profile.created_at).toLocaleDateString('tr-TR')}
+                </p>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Edit Form */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <h3 className="text-lg font-bold text-slate-800">Profil Bilgileri</h3>
+                <p className="text-sm text-slate-500">Kişisel bilgilerinizi güncelleyin</p>
+              </CardHeader>
+              <CardBody>
+                {error && (
+                  <div className="mb-6 p-4 rounded-xl bg-yellow-50 border border-yellow-200">
+                    <p className="text-sm text-yellow-800">{error}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="ad" className="block text-sm font-medium text-slate-700 mb-2">
+                        Ad
+                      </label>
+                      <input
+                        type="text"
+                        name="ad"
+                        id="ad"
+                        value={formData.ad}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                      />
                     </div>
-                  ) : error && !success ? (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                      <div className="flex">
-                        <div className="flex-shrink-0">
-                          <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div className="ml-3">
-                          <h3 className="text-sm font-medium text-yellow-800">Uyarı</h3>
-                          <div className="mt-2 text-sm text-yellow-700">
-                            <p>{error}</p>
-                          </div>
-                        </div>
-                      </div>
+
+                    <div>
+                      <label htmlFor="soyad" className="block text-sm font-medium text-slate-700 mb-2">
+                        Soyad
+                      </label>
+                      <input
+                        type="text"
+                        name="soyad"
+                        id="soyad"
+                        value={formData.soyad}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                      />
                     </div>
-                  ) : success ? (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                      <div className="flex">
-                        <div className="flex-shrink-0">
-                          <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div className="ml-3">
-                          <h3 className="text-sm font-medium text-green-800">Başarılı</h3>
-                          <div className="mt-2 text-sm text-green-700">
-                            <p>Profil bilgileriniz başarıyla güncellendi.</p>
-                          </div>
-                        </div>
-                      </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                        <Mail className="w-4 h-4 inline mr-1" />
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        id="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                      />
                     </div>
-                  ) : null}
 
-                  {profile && (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                        <div className="sm:col-span-3">
-                          <label htmlFor="ad" className="block text-sm font-medium text-gray-700">
-                            Ad
-                          </label>
-                          <div className="mt-1">
-                            <input
-                              type="text"
-                              name="ad"
-                              id="ad"
-                              value={formData.ad}
-                              onChange={handleChange}
-                              required
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            />
-                          </div>
-                        </div>
+                    <div>
+                      <label htmlFor="telefon" className="block text-sm font-medium text-slate-700 mb-2">
+                        <Phone className="w-4 h-4 inline mr-1" />
+                        Telefon
+                      </label>
+                      <input
+                        type="tel"
+                        name="telefon"
+                        id="telefon"
+                        value={formData.telefon}
+                        onChange={handleChange}
+                        placeholder="555 123 45 67"
+                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                      />
+                    </div>
+                  </div>
 
-                        <div className="sm:col-span-3">
-                          <label htmlFor="soyad" className="block text-sm font-medium text-gray-700">
-                            Soyad
-                          </label>
-                          <div className="mt-1">
-                            <input
-                              type="text"
-                              name="soyad"
-                              id="soyad"
-                              value={formData.soyad}
-                              onChange={handleChange}
-                              required
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            />
-                          </div>
-                        </div>
+                  <div>
+                    <label htmlFor="adres" className="block text-sm font-medium text-slate-700 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-1" />
+                      Adres
+                    </label>
+                    <textarea
+                      id="adres"
+                      name="adres"
+                      rows={3}
+                      value={formData.adres}
+                      onChange={handleChange}
+                      placeholder="Adresinizi girin..."
+                      className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all resize-none"
+                    />
+                  </div>
 
-                        <div className="sm:col-span-3">
-                          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                            Email
-                          </label>
-                          <div className="mt-1">
-                            <input
-                              type="email"
-                              name="email"
-                              id="email"
-                              value={formData.email}
-                              onChange={handleChange}
-                              required
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="sm:col-span-3">
-                          <label htmlFor="telefon" className="block text-sm font-medium text-gray-700">
-                            Telefon
-                          </label>
-                          <div className="mt-1">
-                            <input
-                              type="tel"
-                              name="telefon"
-                              id="telefon"
-                              value={formData.telefon}
-                              onChange={handleChange}
-                              required
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="sm:col-span-6">
-                          <label htmlFor="adres" className="block text-sm font-medium text-gray-700">
-                            Adres
-                          </label>
-                          <div className="mt-1">
-                            <textarea
-                              id="adres"
-                              name="adres"
-                              rows={3}
-                              value={formData.adres}
-                              onChange={handleChange}
-                              required
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="sm:col-span-6">
-                          <label htmlFor="tc_no" className="block text-sm font-medium text-gray-700">
-                            TC Kimlik No
-                          </label>
-                          <div className="mt-1">
-                            <input
-                              type="text"
-                              name="tc_no"
-                              id="tc_no"
-                              value={profile.tc_no || ''}
-                              readOnly
-                              className="block w-full rounded-md border-gray-300 shadow-sm bg-gray-50 sm:text-sm"
-                            />
-                            <p className="mt-2 text-sm text-gray-500">
-                              TC Kimlik Numarası güvenlik nedeniyle değiştirilemez.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end">
-                        <Button
-                          type="submit"
-                          variant="primary"
-                          disabled={saving}
-                          className="flex items-center gap-2"
-                        >
-                          <Save className="w-4 h-4" />
-                          {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
-                        </Button>
-                      </div>
-                    </form>
+                  {profile?.tc_no && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <CreditCard className="w-4 h-4 inline mr-1" />
+                        TC Kimlik No
+                      </label>
+                      <input
+                        type="text"
+                        value={profile.tc_no}
+                        readOnly
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-500"
+                      />
+                      <p className="mt-1 text-xs text-slate-400">
+                        TC Kimlik Numarası güvenlik nedeniyle değiştirilemez.
+                      </p>
+                    </div>
                   )}
-                </div>
-              </div>
-            </div>
+
+                  <div className="flex justify-end pt-4 border-t border-slate-100">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={saving}
+                    >
+                      {saving ? (
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                    </Button>
+                  </div>
+                </form>
+              </CardBody>
+            </Card>
           </div>
-        </main>
-      </div>
-    </div>
+        </div>
+      )}
+    </MainLayout>
   );
 };
 

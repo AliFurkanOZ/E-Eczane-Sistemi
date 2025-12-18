@@ -59,7 +59,8 @@ class EczaneService:
                 fiyat=ilac_data.fiyat,
                 receteli=False,  # Eczane sadece reçetesiz ekleyebilir
                 etken_madde=ilac_data.etken_madde,
-                firma=ilac_data.firma
+                firma=ilac_data.firma,
+                prospektus_url=None  # Eczane ürün eklerken prospektüs yok
             )
             
             ilac = self.ilac_repo.create(ilac_create)
@@ -79,6 +80,10 @@ class EczaneService:
         )
         
         stok = self.stok_repo.create(eczane_id, stok_create)
+        
+        # İlac relationship'ini yükle (StokResponse için gerekli)
+        if stok.ilac is None:
+            stok.ilac = ilac
         
         return ilac, stok
     

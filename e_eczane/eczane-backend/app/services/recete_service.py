@@ -30,14 +30,14 @@ class ReceteService:
         Returns:
             ReceteResponse veya None
         """
-        # Önce database'de var mı kontrol et
+        # Önce database'de var mı kontrol et (TÜM DURUMLAR - AKTIF, KULLANILDI, IPTAL)
         recete = self.db.query(Recete).filter(
             Recete.recete_no == query.recete_no,
-            Recete.tc_no == query.tc_no,
-            Recete.durum == ReceteDurum.AKTIF
+            Recete.tc_no == query.tc_no
         ).first()
         
         if recete:
+            # Reçete bulundu - durumu ne olursa olsun döndür (kullanılmış bile olsa)
             return self._recete_to_response(recete)
         
         # Database'de yoksa fake data döndür (simülasyon)
@@ -64,14 +64,38 @@ class ReceteService:
                 etken_madde=ilac.etken_madde
             ))
         
+        # Reçete durumu ve geçerlilik hesaplama
+        RECETE_GECERLILIK_SURESI = 2
+        son_gecerlilik_tarihi = recete.tarih + timedelta(days=RECETE_GECERLILIK_SURESI)
+        bugun = date.today()
+        kalan_gun = max(0, (son_gecerlilik_tarihi - bugun).days)
+        
+        # Kullanılabilirlik kontrolü
+        durum = recete.durum.value
+        kullanilabilir = (
+            recete.durum == ReceteDurum.AKTIF and 
+            bugun <= son_gecerlilik_tarihi
+        )
+        
+        # Süresi dolmuşsa durumu güncelle
+        if recete.durum == ReceteDurum.AKTIF and bugun > son_gecerlilik_tarihi:
+            recete.durum = ReceteDurum.IPTAL
+            self.db.commit()
+            durum = "iptal"
+            kullanilabilir = False
+        
         return ReceteResponse(
+            recete_id=str(recete.id),
             recete_no=recete.recete_no,
             tc_no=recete.tc_no,
             tarih=recete.tarih,
             doktor_adi=recete.doktor_adi,
             hastane=recete.hastane,
             ilac_listesi=ilac_listesi,
-            toplam_tutar=toplam_tutar
+            toplam_tutar=toplam_tutar,
+            durum=durum,
+            kalan_gun=kalan_gun,
+            kullanilabilir=kullanilabilir
         )
     
     def _generate_fake_recete(self, query: ReceteQuery) -> Optional[ReceteResponse]:
@@ -154,7 +178,10 @@ class ReceteService:
                 "Gazi Üniversitesi Hastanesi"
             ]),
             ilac_listesi=ilac_listesi,
-            toplam_tutar=toplam_tutar
+            toplam_tutar=toplam_tutar,
+            durum="aktif",
+            kalan_gun=2,  # Fake reçeteler her zaman 2 gün geçerli
+            kullanilabilir=True
         )
     
     def _get_or_create_fake_ilac(self, barkod: str) -> Optional[Ilac]:

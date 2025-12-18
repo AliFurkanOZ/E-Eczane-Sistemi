@@ -1,15 +1,20 @@
 from uuid import UUID
 from typing import List, Optional
+from datetime import date, timedelta
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from decimal import Decimal
 from app.models.siparis import Siparis, SiparisDetay, SiparisDurumGecmisi
 from app.models.stok import Stok
 from app.models.bildirim import Bildirim
+from app.models.recete import Recete, ReceteDurum
 from app.schemas.siparis import SiparisCreate, SiparisResponse
 from app.utils.enums import SiparisDurum, OdemeDurum, BildirimTip
 from app.repositories.eczane_repository import EczaneRepository
 from app.repositories.ilac_repository import IlacRepository
+
+# Reçete geçerlilik süresi (gün)
+RECETE_GECERLILIK_SURESI = 2
 
 
 class SiparisService:
@@ -21,13 +26,15 @@ class SiparisService:
     def create_siparis(
         self,
         hasta_id: str,
+        user_id: str,
         siparis_data: SiparisCreate
     ) -> Siparis:
         """
         Yeni sipariş oluştur
         
         Args:
-            hasta_id: Hasta kullanıcı ID
+            hasta_id: Hasta tablosundaki ID (hastalar.id)
+            user_id: User tablosundaki ID (users.id) - durum geçmişi için
             siparis_data: Sipariş bilgileri
         
         Returns:
@@ -38,8 +45,8 @@ class SiparisService:
         """
         eczane_repo = EczaneRepository(self.db)
         
-        # Eczane kontrolü
-        eczane = eczane_repo.get_by_id(siparis_data.eczane_id)
+        # Eczane kontrolü - convert string eczane_id to UUID
+        eczane = eczane_repo.get_by_id(UUID(siparis_data.eczane_id))
         if not eczane:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -53,7 +60,7 @@ class SiparisService:
         }
         
         stok_yeterli, eksik_ilaclar = eczane_repo.check_stock_availability(
-            siparis_data.eczane_id,
+            UUID(siparis_data.eczane_id),
             ilac_miktar_map
         )
         
@@ -66,14 +73,51 @@ class SiparisService:
                 }
             )
         
+        # Reçete validasyonu - güvenlik açığı düzeltmesi
+        recete = None
+        if siparis_data.recete_id:
+            recete = self.db.query(Recete).filter(
+                Recete.id == UUID(siparis_data.recete_id)
+            ).first()
+            
+            if not recete:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Reçete bulunamadı"
+                )
+            
+            # Reçete durumu kontrolü
+            if recete.durum == ReceteDurum.KULLANILDI:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Bu reçete zaten kullanılmış. Aynı reçete ile tekrar sipariş verilemez."
+                )
+            
+            if recete.durum == ReceteDurum.IPTAL:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Bu reçete iptal edilmiş."
+                )
+            
+            # Reçete geçerlilik süresi kontrolü (2 gün)
+            son_gecerlilik_tarihi = recete.tarih + timedelta(days=RECETE_GECERLILIK_SURESI)
+            if date.today() > son_gecerlilik_tarihi:
+                # Süresi dolmuş reçeteyi iptal olarak işaretle
+                recete.durum = ReceteDurum.IPTAL
+                self.db.flush()
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Reçetenin geçerlilik süresi dolmuş. Reçeteler {RECETE_GECERLILIK_SURESI} gün içinde kullanılmalıdır."
+                )
+        
         # Toplam tutarı hesapla
         toplam_tutar = sum(item.ara_toplam for item in siparis_data.items)
         
-        # Sipariş oluştur
+        # Sipariş oluştur - convert string IDs to UUIDs
         siparis = Siparis(
-            hasta_id=hasta_id,
-            eczane_id=siparis_data.eczane_id,
-            recete_id=siparis_data.recete_id,
+            hasta_id=UUID(hasta_id),
+            eczane_id=UUID(siparis_data.eczane_id),
+            recete_id=UUID(siparis_data.recete_id) if siparis_data.recete_id else None,
             toplam_tutar=toplam_tutar,
             durum=SiparisDurum.BEKLEMEDE,
             odeme_durumu=OdemeDurum.ODENDI,  # Simülasyon - ödeme yapıldı
@@ -84,11 +128,11 @@ class SiparisService:
         self.db.add(siparis)
         self.db.flush()  # ID'yi al
         
-        # Sipariş detaylarını ekle
+        # Sipariş detaylarını ekle - convert ilac_id to UUID
         for item in siparis_data.items:
             detay = SiparisDetay(
                 siparis_id=siparis.id,
-                ilac_id=item.ilac_id,
+                ilac_id=UUID(item.ilac_id),
                 miktar=item.miktar,
                 birim_fiyat=item.birim_fiyat,
                 ara_toplam=item.ara_toplam
@@ -105,13 +149,13 @@ class SiparisService:
             if stok:
                 stok.miktar -= miktar
         
-        # Durum geçmişi ekle
+        # Durum geçmişi ekle - use user_id (users.id), not hasta_id (hastalar.id)
         gecmis = SiparisDurumGecmisi(
             siparis_id=siparis.id,
             eski_durum=None,
             yeni_durum=SiparisDurum.BEKLEMEDE.value,
             aciklama="Sipariş oluşturuldu",
-            degistiren_user_id=hasta_id
+            degistiren_user_id=UUID(user_id)
         )
         self.db.add(gecmis)
         
@@ -125,25 +169,49 @@ class SiparisService:
         )
         self.db.add(bildirim)
         
+        # Reçeteyi kullanıldı olarak işaretle (sipariş başarılı)
+        if recete:
+            recete.durum = ReceteDurum.KULLANILDI
+        
         self.db.commit()
         self.db.refresh(siparis)
         
         return siparis
     
+    def get_siparis_by_id_and_eczane(
+        self,
+        siparis_id,
+        eczane_id
+    ) -> Optional[Siparis]:
+        """
+        Belirli bir eczaneye ait siparişi getir
+        
+        Args:
+            siparis_id: Sipariş ID
+            eczane_id: Eczane ID
+        
+        Returns:
+            Siparis veya None
+        """
+        return self.db.query(Siparis).filter(
+            Siparis.id == siparis_id,
+            Siparis.eczane_id == eczane_id
+        ).first()
+    
     def update_durum(
         self,
-        siparis_id: str,
+        siparis_id,
         yeni_durum: SiparisDurum,
-        user_id: str,
+        user_id,
         aciklama: Optional[str] = None
     ) -> Siparis:
         """
         Sipariş durumunu güncelle
         
         Args:
-            siparis_id: Sipariş ID
+            siparis_id: Sipariş ID (UUID or string)
             yeni_durum: Yeni durum
-            user_id: İşlemi yapan kullanıcı ID
+            user_id: İşlemi yapan kullanıcı ID (UUID or string)
             aciklama: Durum değişikliği açıklaması
         
         Returns:
@@ -152,7 +220,11 @@ class SiparisService:
         Raises:
             HTTPException: Geçersiz durum geçişi
         """
-        siparis = self.db.query(Siparis).filter(Siparis.id == UUID(siparis_id)).first()
+        # Handle both UUID and string types
+        if isinstance(siparis_id, str):
+            siparis_id = UUID(siparis_id)
+        
+        siparis = self.db.query(Siparis).filter(Siparis.id == siparis_id).first()
         
         if not siparis:
             raise HTTPException(
@@ -176,13 +248,19 @@ class SiparisService:
         eski_durum = siparis.durum
         siparis.durum = yeni_durum
         
+        # Handle user_id type conversion
+        if isinstance(user_id, str):
+            user_id_uuid = UUID(user_id)
+        else:
+            user_id_uuid = user_id
+        
         # Durum geçmişi ekle
         gecmis = SiparisDurumGecmisi(
             siparis_id=siparis.id,
             eski_durum=eski_durum.value,
             yeni_durum=yeni_durum.value,
             aciklama=aciklama,
-            degistiren_user_id=user_id
+            degistiren_user_id=user_id_uuid
         )
         self.db.add(gecmis)
         
@@ -216,22 +294,26 @@ class SiparisService:
     
     def iptal_et(
         self,
-        siparis_id: str,
+        siparis_id,
         iptal_nedeni: str,
-        user_id: str
+        user_id
     ) -> Siparis:
         """
         Siparişi iptal et
         
         Args:
-            siparis_id: Sipariş ID
+            siparis_id: Sipariş ID (UUID or string)
             iptal_nedeni: İptal nedeni
-            user_id: İptal eden kullanıcı ID
+            user_id: İptal eden kullanıcı ID (UUID or string)
         
         Returns:
             Siparis: İptal edilen sipariş
         """
-        siparis = self.db.query(Siparis).filter(Siparis.id == UUID(siparis_id)).first()
+        # Handle both UUID and string types
+        if isinstance(siparis_id, str):
+            siparis_id = UUID(siparis_id)
+        
+        siparis = self.db.query(Siparis).filter(Siparis.id == siparis_id).first()
         
         if not siparis:
             raise HTTPException(
@@ -264,18 +346,24 @@ class SiparisService:
         siparis.iptal_nedeni = iptal_nedeni
         siparis.odeme_durumu = OdemeDurum.IADE_EDILDI
         
+        # Handle user_id type conversion
+        if isinstance(user_id, str):
+            user_id_uuid = UUID(user_id)
+        else:
+            user_id_uuid = user_id
+        
         # Durum geçmişi ekle
         gecmis = SiparisDurumGecmisi(
             siparis_id=siparis.id,
             eski_durum=eski_durum.value,
             yeni_durum=SiparisDurum.IPTAL_EDILDI.value,
             aciklama=f"İptal nedeni: {iptal_nedeni}",
-            degistiren_user_id=user_id
+            degistiren_user_id=user_id_uuid
         )
         self.db.add(gecmis)
         
         # Karşı tarafa bildirim gönder
-        if str(siparis.hasta.user_id) == user_id:
+        if siparis.hasta.user_id == user_id_uuid:
             # Hasta iptal etti, eczaneye bildir
             bildirim_user_id = siparis.eczane.user_id
             mesaj = f"#{siparis.siparis_no} numaralı sipariş hasta tarafından iptal edildi"

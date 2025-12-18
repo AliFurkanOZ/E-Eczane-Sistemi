@@ -40,4 +40,26 @@ export const authApi = {
     const response = await axios.post('/api/auth/logout');
     return response.data;
   },
+
+  // Forgot password
+  forgotPassword: async (email) => {
+    const response = await axios.post('/api/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  // Reset password
+  resetPassword: async (token, newPassword, newPasswordConfirm) => {
+    const response = await axios.post('/api/auth/reset-password', {
+      token,
+      new_password: newPassword,
+      new_password_confirm: newPasswordConfirm,
+    });
+    return response.data;
+  },
+
+  // Verify reset token
+  verifyResetToken: async (token) => {
+    const response = await axios.get(`/api/auth/verify-reset-token/${token}`);
+    return response.data;
+  },
 };

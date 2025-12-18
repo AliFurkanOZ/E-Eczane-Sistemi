@@ -49,6 +49,7 @@ class ReceteResponse(BaseModel):
     """Reçete response"""
     model_config = ConfigDict(from_attributes=True)
     
+    recete_id: Optional[str] = None  # Veritabanındaki reçete ID'si (varsa)
     recete_no: str
     tc_no: str
     tarih: date
@@ -56,6 +57,9 @@ class ReceteResponse(BaseModel):
     hastane: Optional[str] = None
     ilac_listesi: List[ReceteIlacItem]
     toplam_tutar: Decimal = Field(..., ge=0, decimal_places=2, description="Toplam tutar (TL)")
+    durum: str = Field(default="aktif", description="Reçete durumu: aktif, kullanildi, iptal")
+    kalan_gun: int = Field(default=2, description="Reçetenin geçerliliğinin kalan gün sayısı")
+    kullanilabilir: bool = Field(default=True, description="Reçete sipariş için kullanılabilir mi?")
 
 
 class ReceteCreateRequest(BaseModel):
