@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
+import { getProfile } from '../../api/hastaApi';
 import {
   Package,
   LayoutDashboard,
@@ -20,6 +21,19 @@ const HastaSidebar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const [hastaProfile, setHastaProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile = await getProfile();
+        setHastaProfile(profile);
+      } catch (err) {
+        console.error('Profil yüklenemedi:', err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const navigation = [
     { name: 'Ana Sayfa', href: '/hasta/dashboard', icon: LayoutDashboard },
@@ -57,11 +71,11 @@ const HastaSidebar = () => {
 
           <div className="flex items-center relative z-10">
             <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-lg ring-2 ring-white shadow-sm">
-              {user?.email?.charAt(0).toUpperCase() || 'H'}
+              {hastaProfile?.ad?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'H'}
             </div>
             <div className="ml-3 overflow-hidden">
               <p className="text-sm font-bold text-slate-800 truncate">
-                {user?.name || 'Hasta Kullanıcısı'}
+                {hastaProfile ? `${hastaProfile.ad} ${hastaProfile.soyad}` : ''}
               </p>
               <p className="text-xs text-slate-500 truncate">
                 {user?.email || 'kullanici@mail.com'}

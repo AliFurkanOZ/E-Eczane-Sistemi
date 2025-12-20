@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText,
@@ -11,7 +12,8 @@ import {
     Pill,
     ChevronLeft,
     ChevronRight,
-    Activity
+    Activity,
+    CreditCard
 } from 'lucide-react';
 import * as doktorApi from '../../../api/doktorApi';
 import MainLayout from '../../../components/layout/MainLayout';
@@ -20,6 +22,115 @@ import Card, { CardBody, CardHeader } from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Loading from '../../../components/common/Loading';
+
+const PrescriptionDetailModal = ({ isOpen, onClose, prescription, getStatusVariant, getStatusText }) => {
+    if (!isOpen || !prescription) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                onClick={onClose}
+            />
+
+            {/* Modal Content */}
+            <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white sticky top-0 z-10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center ring-1 ring-teal-100">
+                            <FileText className="w-5 h-5 text-teal-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900">
+                                {prescription.recete_no}
+                            </h3>
+                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                                Reçete Detayı
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Scrollable Body */}
+                <div className="p-6 overflow-y-auto custom-scrollbar">
+                    {/* Patient Card */}
+                    <div className="bg-slate-50 rounded-xl p-4 mb-6 ring-1 ring-slate-100">
+                        <div className="flex items-start justify-between">
+                            <div className="flex gap-3">
+                                <div className="p-2 bg-white rounded-lg shadow-sm">
+                                    <User className="w-5 h-5 text-slate-600" />
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-slate-900">{prescription.hasta_adi}</p>
+                                    <p className="text-sm text-slate-500 font-mono mt-0.5">TC: {prescription.tc_no}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <Badge variant={getStatusVariant(prescription.durum)} className="mb-1">
+                                    {getStatusText(prescription.durum)}
+                                </Badge>
+                                <div className="flex items-center justify-end text-xs text-slate-500 mt-1">
+                                    <Calendar className="w-3 h-3 mr-1" />
+                                    {prescription.tarih ? new Date(prescription.tarih).toLocaleDateString('tr-TR') : '-'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Medications List */}
+                    <div className="mb-6">
+                        <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center">
+                            <Pill className="w-4 h-4 mr-2 text-teal-600" />
+                            İlaç Listesi ({prescription.ilaclar?.length || 0})
+                        </h4>
+                        <div className="space-y-2">
+                            {prescription.ilaclar?.map((ilac, index) => (
+                                <div key={index} className="group flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:border-teal-200 hover:shadow-sm transition-all">
+                                    <div className="flex-1 min-w-0 mr-4">
+                                        <p className="font-semibold text-slate-800 truncate">{ilac.ilac_adi}</p>
+                                        {ilac.kullanim_talimati && (
+                                            <p className="text-xs text-slate-500 mt-0.5 truncate">{ilac.kullanim_talimati}</p>
+                                        )}
+                                    </div>
+                                    <div className="text-right whitespace-nowrap">
+                                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-xs font-medium text-slate-600 mb-1">
+                                            {ilac.miktar} Kutu
+                                        </span>
+                                        <p className="text-sm font-bold text-teal-600">
+                                            {(parseFloat(ilac.fiyat) * ilac.miktar).toFixed(2)} ₺
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="border-t border-slate-100 p-4 bg-slate-50 flex items-center justify-between">
+                    <div className="flex flex-col">
+                        <span className="text-xs text-slate-500 font-medium uppercase">Toplam Tutar</span>
+                        <span className="text-xl font-bold text-teal-700">
+                            {parseFloat(prescription.toplam_tutar || 0).toFixed(2)} ₺
+                        </span>
+                    </div>
+                    <Button variant="secondary" onClick={onClose} className="bg-white hover:bg-slate-100 border-slate-200">
+                        Kapat
+                    </Button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
 
 const DoktorPrescriptionList = () => {
     const navigate = useNavigate();
@@ -259,102 +370,13 @@ const DoktorPrescriptionList = () => {
                 </Card>
             )}
 
-            {/* Detail Modal */}
-            {showModal && selectedPrescription && (
-                <div className="fixed inset-0 z-50 overflow-y-auto">
-                    <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-                        <div
-                            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
-                            onClick={closeModal}
-                        />
-
-                        <div className="relative inline-block w-full max-w-2xl p-6 my-8 text-left align-middle bg-white rounded-2xl shadow-xl transform transition-all">
-                            {/* Modal Header */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center">
-                                    <div className="p-3 bg-teal-100 rounded-xl mr-4">
-                                        <FileText className="w-6 h-6 text-teal-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-slate-900">
-                                            {selectedPrescription.recete_no}
-                                        </h3>
-                                        <p className="text-sm text-slate-500">Reçete Detayları</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={closeModal}
-                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            {/* Patient Info */}
-                            <div className="bg-slate-50 rounded-xl p-4 mb-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-white rounded-full">
-                                        <User className="w-6 h-6 text-slate-600" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-slate-800">{selectedPrescription.hasta_adi}</p>
-                                        <p className="text-sm text-slate-500">TC: {selectedPrescription.tc_no}</p>
-                                    </div>
-                                    <div className="ml-auto text-right">
-                                        <Badge variant={getStatusVariant(selectedPrescription.durum)}>
-                                            {getStatusText(selectedPrescription.durum)}
-                                        </Badge>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            {selectedPrescription.tarih ? new Date(selectedPrescription.tarih).toLocaleDateString('tr-TR') : '-'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Medications List */}
-                            <div className="mb-6">
-                                <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center">
-                                    <Pill className="w-4 h-4 mr-2" />
-                                    İlaçlar ({selectedPrescription.ilaclar?.length || 0})
-                                </h4>
-                                <div className="space-y-3">
-                                    {selectedPrescription.ilaclar?.map((ilac, index) => (
-                                        <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                                            <div>
-                                                <p className="font-medium text-slate-800">{ilac.ilac_adi}</p>
-                                                {ilac.kullanim_talimati && (
-                                                    <p className="text-xs text-slate-500 mt-0.5">{ilac.kullanim_talimati}</p>
-                                                )}
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-sm text-slate-600">{ilac.miktar} adet</p>
-                                                <p className="text-xs text-emerald-600 font-medium">
-                                                    {(parseFloat(ilac.fiyat) * ilac.miktar).toFixed(2)} ₺
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Total */}
-                            <div className="flex items-center justify-between p-4 bg-teal-50 rounded-xl">
-                                <span className="font-semibold text-slate-700">Toplam Tutar</span>
-                                <span className="text-xl font-bold text-teal-600">
-                                    {parseFloat(selectedPrescription.toplam_tutar || 0).toFixed(2)} ₺
-                                </span>
-                            </div>
-
-                            {/* Footer */}
-                            <div className="mt-6 flex justify-end">
-                                <Button variant="secondary" onClick={closeModal}>
-                                    Kapat
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <PrescriptionDetailModal
+                isOpen={showModal}
+                onClose={closeModal}
+                prescription={selectedPrescription}
+                getStatusVariant={getStatusVariant}
+                getStatusText={getStatusText}
+            />
         </MainLayout>
     );
 };

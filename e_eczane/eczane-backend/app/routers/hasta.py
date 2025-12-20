@@ -229,19 +229,11 @@ async def get_eczaneler(
     
     # Hasta bilgilerini al (konum için)
     hasta = db.query(Hasta).filter(Hasta.user_id == current_user.id).first()
-    hasta_mahalle = None
-    hasta_ilce = None
-    hasta_il = None
     
-    # Hasta adresinden konum bilgisi çıkar (basit parsing)
-    if hasta and hasta.adres:
-        adres_parts = hasta.adres.split('/')
-        if len(adres_parts) >= 2:
-            # Format: "... İlçe/İl" şeklinde varsayıyoruz
-            hasta_il = adres_parts[-1].strip()
-            ilce_part = adres_parts[-2].strip().split()
-            if ilce_part:
-                hasta_ilce = ilce_part[-1]
+    # Hasta lokasyon bilgilerini doğrudan kullan
+    hasta_mahalle = hasta.mahalle if hasta else None
+    hasta_ilce = hasta.ilce if hasta else None
+    hasta_il = hasta.il if hasta else None
     
     eczane_repo = EczaneRepository(db)
     eczaneler_with_stock = eczane_repo.find_eczaneler_with_stock(
@@ -287,18 +279,11 @@ async def listele_eczaneler(
     """
     # Hasta bilgilerini al (konum için)
     hasta = db.query(Hasta).filter(Hasta.user_id == current_user.id).first()
-    hasta_mahalle = None
-    hasta_ilce = None
-    hasta_il = None
     
-    # Hasta adresinden konum bilgisi çıkar (basit parsing)
-    if hasta and hasta.adres:
-        adres_parts = hasta.adres.split('/')
-        if len(adres_parts) >= 2:
-            hasta_il = adres_parts[-1].strip()
-            ilce_part = adres_parts[-2].strip().split()
-            if ilce_part:
-                hasta_ilce = ilce_part[-1]
+    # Hasta lokasyon bilgilerini doğrudan kullan
+    hasta_mahalle = hasta.mahalle if hasta else None
+    hasta_ilce = hasta.ilce if hasta else None
+    hasta_il = hasta.il if hasta else None
     
     eczane_repo = EczaneRepository(db)
     eczaneler_with_stock = eczane_repo.find_eczaneler_with_stock(

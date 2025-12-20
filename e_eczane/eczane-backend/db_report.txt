@@ -1,0 +1,88 @@
+============================================================
+VERITABANI MEVCUT VERILER
+============================================================
+
+USERS (Kullanicilar): 22 kayit
+   - eczane1@eczane.com (eczane)
+   - eczane2@eczane.com (eczane)
+   - admin@eczane.com (admin)
+   - farukaka79@gmail.com (hasta)
+   - sametbulak446@gmail.com (eczane)
+   - eczane4@eczane.com (eczane)
+   - canaka357@outlook.com (doktor)
+   - eczane5@eczane.com (eczane)
+   - test_pending_32001713@example.com (eczane)
+   - test_mahalle1_32001819@example.com (eczane)
+   ... ve 12 kayit daha
+
+HASTALAR: 3 kayit
+   - Faruk Aka (TC: 12345678901)
+   - Garip Perişan (TC: 12345678902)
+   - Emir Timur (TC: 12345678903)
+
+ECZANELER: 12 kayit
+   - 3 Eczane (Sicil: ANK123459, Durum: onaylandi)
+   - 4 Eczane (Sicil: ANK123466, Durum: onaylandi)
+   - 2 Eczanesi (Sicil: ANK123458, Durum: onaylandi)
+   - 4 Eczane (Sicil: ANK1234667, Durum: onaylandi)
+   - 5 Eczane (Sicil: ANK123468, Durum: onaylandi)
+   ... ve 7 kayit daha
+
+ADMINLER: 1 kayit
+   - Sistem Yoneticisi
+
+DOKTORLAR: 1 kayit
+   - Dr. Can Aka (Diploma: DR1234567)
+
+ILACLAR: 22 kayit
+   - Parol 500mg Tablet (8699123456001) - 28.50 TL
+   - Minoset 500mg Tablet (8699123456002) - 25.00 TL
+   - Aspirin 100mg Tablet (8699123456003) - 22.00 TL
+   - Majezik 100mg Film Tablet (8699123456004) - 35.00 TL
+   - Voltaren 50mg Tablet (8699123456005) - 42.00 TL
+   ... ve 17 kayit daha
+
+MUADIL ILACLAR: 10 kayit
+
+STOKLAR: 264 kayit
+   - Ilac ID: cdabeace... Miktar: 38
+   - Ilac ID: 3c79dc2b... Miktar: 74
+   - Ilac ID: 95f0da34... Miktar: 97
+   - Ilac ID: d6609bdf... Miktar: 48
+   - Ilac ID: 2e399734... Miktar: 95
+   ... ve 259 kayit daha
+
+RECETELER: 1 kayit
+   - RCT202512208893 (TC: 12345678901, Durum: kullanildi)
+
+RECETE-ILAC ILISKILERI: 2 kayit
+
+SIPARISLER: 1 kayit
+   - SIP2512200057211C5B (Durum: teslim_edildi, Tutar: 76.50 TL)
+
+SIPARIS DETAYLARI: 2 kayit
+
+SIPARIS DURUM GECMISI: 4 kayit
+
+BILDIRIMLER: 26 kayit
+
+============================================================
+OZET
+============================================================
+
+Toplam kayit sayilari:
+- Users: 22
+- Hastalar: 3
+- Eczaneler: 12
+- Adminler: 1
+- Doktorlar: 1
+- Ilaclar: 22
+- Muadil Ilaclar: 10
+- Stoklar: 264
+- Receteler: 1
+- Recete Ilaclari: 2
+- Siparisler: 1
+- Siparis Detaylari: 2
+- Durum Gecmisi: 4
+- Bildirimler: 26
+        

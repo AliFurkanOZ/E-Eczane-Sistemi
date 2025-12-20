@@ -13,6 +13,9 @@ class Hasta(BaseModel):
     ad = Column(String(100), nullable=False)
     soyad = Column(String(100), nullable=False)
     adres = Column(String(500), nullable=False)
+    mahalle = Column(String(100), nullable=True, index=True)
+    ilce = Column(String(100), nullable=True, index=True)
+    il = Column(String(100), nullable=True, index=True)
     telefon = Column(String(20), nullable=False)
     profil_resmi_url = Column(String(500), nullable=True)
     

@@ -43,15 +43,13 @@ const AdminDashboard = () => {
       ]);
 
       setStats({
-        patients: dashStats?.toplam_hasta || 25,
-        pharmacies: dashStats?.toplam_eczane || 12,
-        pendingPharmacies: pending?.length || 2,
-        totalOrders: dashStats?.toplam_siparis || 150
+        patients: dashStats?.toplam_hasta ?? 0,
+        pharmacies: dashStats?.toplam_eczane ?? 0,
+        pendingPharmacies: pending?.length ?? 0,
+        totalOrders: dashStats?.toplam_siparis ?? 0
       });
 
-      setPendingPharmacies(pending?.slice(0, 5) || [
-        { id: 1, eczane_adi: 'Yeni Eczane', eczaci_adi: 'Ali', eczaci_soyadi: 'Veli', mahalle: 'Merkez' }
-      ]);
+      setPendingPharmacies(pending?.slice(0, 5) ?? []);
     } catch (err) {
       console.error('Error:', err);
     } finally {

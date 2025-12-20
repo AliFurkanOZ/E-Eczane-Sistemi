@@ -231,6 +231,8 @@ const RegisterEczane = () => {
         telefon: formData.telefon,
         adres: fullAddress,
         mahalle: addressData.mahalle,
+        ilce: addressData.ilce,
+        il: addressData.il,
         eczaci_adi: formData.eczaci_adi,
         eczaci_soyadi: formData.eczaci_soyadi,
         eczaci_diploma_no: formData.eczaci_diploma_no,

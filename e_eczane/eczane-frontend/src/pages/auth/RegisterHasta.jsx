@@ -129,7 +129,7 @@ const RegisterHasta = () => {
 
     if (!validate()) return;
 
-    // Combine address into full string
+    // Combine address into full string for display
     const fullAddress = `${addressData.adres}, ${addressData.mahalle}, ${addressData.ilce}/${addressData.il}`;
 
     try {
@@ -140,6 +140,9 @@ const RegisterHasta = () => {
         email: formData.email,
         telefon: formData.telefon,
         adres: fullAddress,
+        mahalle: addressData.mahalle,
+        ilce: addressData.ilce,
+        il: addressData.il,
         password: formData.password,
       })).unwrap();
 

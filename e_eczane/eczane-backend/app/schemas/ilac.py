@@ -71,11 +71,11 @@ class IlacResponse(IlacBase):
     aktif: bool
     prospektus_url: Optional[str]
     created_at: datetime
-    muadiller: List[MuadilIlacResponse] = []
     
     @field_serializer('id')
     def serialize_id(self, value: UUID) -> str:
         return str(value)
+
 
 
 class IlacWithStokResponse(IlacResponse):

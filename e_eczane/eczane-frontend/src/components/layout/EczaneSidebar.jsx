@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
+import { getProfile } from '../../api/eczaneApi';
 import {
     Package,
     LayoutDashboard,
@@ -20,6 +21,19 @@ const EczaneSidebar = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
+    const [eczaneProfile, setEczaneProfile] = useState(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const profile = await getProfile();
+                setEczaneProfile(profile);
+            } catch (err) {
+                console.error('Profil yüklenemedi:', err);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     const navigation = [
         { name: 'Ana Sayfa', href: '/eczane/dashboard', icon: LayoutDashboard },
@@ -56,11 +70,11 @@ const EczaneSidebar = () => {
 
                     <div className="flex items-center relative z-10">
                         <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-lg ring-2 ring-white shadow-sm">
-                            {user?.name?.charAt(0).toUpperCase() || 'E'}
+                            {eczaneProfile?.eczane_adi?.charAt(0).toUpperCase() || 'E'}
                         </div>
                         <div className="ml-3 overflow-hidden">
                             <p className="text-sm font-bold text-slate-800 truncate">
-                                {user?.name || 'Eczane Adı'}
+                                {eczaneProfile?.eczane_adi || ''}
                             </p>
                             <p className="text-xs text-slate-500 truncate">
                                 {user?.email || 'eczane@email.com'}

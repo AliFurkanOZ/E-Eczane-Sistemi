@@ -48,6 +48,7 @@ class EczaneRepository:
     ) -> List[Tuple[Eczane, Dict]]:
         """
         Belirli ilaçlara sahip eczaneleri bul ve konuma göre sırala
+        Sadece hastanın ilindeki eczaneleri döndürür.
         
         Args:
             ilac_ids: Aranan ilaç ID'leri (string format)
@@ -56,7 +57,7 @@ class EczaneRepository:
             hasta_il: Hastanın ili
         
         Returns:
-            List of (Eczane, stok_bilgileri) tuples - konuma göre sıralı
+            List of (Eczane, stok_bilgileri) tuples - konuma göre sıralı, aynı ildeki eczaneler
         """
         # Convert string IDs to UUIDs
         uuid_ilac_ids = [UUID(ilac_id) for ilac_id in ilac_ids if ilac_id]
@@ -84,11 +85,22 @@ class EczaneRepository:
         
         # Eczane bilgilerini al
         eczane_ids = list(eczane_stok_map.keys())
-        eczaneler = self.db.query(Eczane).join(Eczane.user).filter(
+        
+        # Temel filtre: onaylı ve aktif eczaneler
+        query = self.db.query(Eczane).join(Eczane.user).filter(
             Eczane.id.in_(eczane_ids),
             Eczane.onay_durumu == OnayDurumu.ONAYLANDI,
             Eczane.user.has(is_active=True)
-        ).all()
+        )
+        
+        # İl filtresi: Sadece hastanın ilindeki eczaneler (kritik!)
+        if hasta_il:
+            query = query.filter(
+                Eczane.il.isnot(None),
+                Eczane.il.ilike(hasta_il)
+            )
+        
+        eczaneler = query.all()
         
         # Eczaneleri konuma göre sırala (mahalle > ilce > il)
         def get_location_priority(eczane: Eczane) -> int:
@@ -97,15 +109,13 @@ class EczaneRepository:
             0 = Aynı mahalle (en yakın)
             1 = Farklı mahalle, aynı ilçe
             2 = Farklı ilçe, aynı il
-            3 = Farklı il (en uzak)
             """
-            if hasta_mahalle and eczane.mahalle == hasta_mahalle:
+            if hasta_mahalle and eczane.mahalle and eczane.mahalle.lower() == hasta_mahalle.lower():
                 return 0
             if hasta_ilce and eczane.ilce and eczane.ilce.lower() == hasta_ilce.lower():
                 return 1
-            if hasta_il and eczane.il and eczane.il.lower() == hasta_il.lower():
-                return 2
-            return 3
+            # Aynı il (zaten filtrelenmiş)
+            return 2
         
         # Eczaneleri öncelik sırasına göre sırala
         sorted_eczaneler = sorted(eczaneler, key=get_location_priority)

@@ -216,15 +216,7 @@ const Login = () => {
             </Link>
           </div>
 
-          {/* Demo Credentials Hint */}
-          <div className="mt-8 pt-6 border-t border-slate-200">
-            <p className="text-xs text-center text-slate-400 mb-3">Demo Giriş Bilgileri</p>
-            <div className="flex justify-center gap-2 text-[10px] text-slate-500 bg-white p-3 rounded-lg border border-slate-100">
-              <div><span className="font-bold text-primary-600">Hasta:</span> hasta1@test.com / Test123!</div>
-              <div className="w-px bg-slate-200 mx-1"></div>
-              <div><span className="font-bold text-secondary-600">Eczane:</span> merkez@eczane.com / Eczane123!</div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

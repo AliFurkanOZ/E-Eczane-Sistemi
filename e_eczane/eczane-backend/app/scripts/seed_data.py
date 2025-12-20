@@ -77,6 +77,9 @@ def create_hastalar(db: Session):
             "ad": "Ahmet",
             "soyad": "Yılmaz",
             "adres": "Kızılay Mah. Atatürk Cad. No:15, Çankaya/Ankara",
+            "mahalle": "Kızılay",
+            "ilce": "Çankaya",
+            "il": "Ankara",
             "telefon": "555 111 11 11"
         },
         {
@@ -86,6 +89,9 @@ def create_hastalar(db: Session):
             "ad": "Ayşe",
             "soyad": "Demir",
             "adres": "Bahçelievler Mah. İnönü Cad. No:42, Yenimahalle/Ankara",
+            "mahalle": "Bahçelievler",
+            "ilce": "Yenimahalle",
+            "il": "Ankara",
             "telefon": "555 222 22 22"
         }
     ]
@@ -95,7 +101,15 @@ def create_hastalar(db: Session):
         # Global TC No check
         hasta_by_tc = db.query(Hasta).filter(Hasta.tc_no == data["tc_no"]).first()
         if hasta_by_tc:
-            print(f"  ⚠️ TC No ({data['tc_no']}) zaten kayıtlı. Atlanıyor.")
+            # Update location fields if missing
+            if not hasta_by_tc.il:
+                hasta_by_tc.il = data.get("il")
+                hasta_by_tc.ilce = data.get("ilce")
+                hasta_by_tc.mahalle = data.get("mahalle")
+                db.commit()
+                print(f"  ✅ Hasta lokasyon güncellendi: {data['tc_no']}")
+            else:
+                print(f"  ⚠️ TC No ({data['tc_no']}) zaten kayıtlı. Atlanıyor.")
             continue
 
         existing = db.query(User).filter(User.email == data["email"]).first()
@@ -118,6 +132,9 @@ def create_hastalar(db: Session):
             ad=data["ad"],
             soyad=data["soyad"],
             adres=data["adres"],
+            mahalle=data.get("mahalle"),
+            ilce=data.get("ilce"),
+            il=data.get("il"),
             telefon=data["telefon"]
         )
         db.add(hasta)

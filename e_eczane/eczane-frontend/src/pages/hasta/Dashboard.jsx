@@ -257,7 +257,7 @@ const HastaDashboard = () => {
               <div className="relative z-10">
                 <h4 className="font-bold text-lg mb-2">Mobil Uygulama</h4>
                 <p className="text-primary-100 text-sm mb-4">E-Eczane deneyimini cebinizde yaşayın.</p>
-                <Button size="sm" className="bg-white text-primary-700 hover:bg-primary-50 border-none">
+                <Button size="sm" variant="ghost" className="bg-white text-primary-900 font-bold hover:bg-white/90 border-none shadow-md">
                   Yakında
                 </Button>
               </div>

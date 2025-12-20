@@ -137,6 +137,9 @@ class AuthService:
             ad=hasta_data.ad,
             soyad=hasta_data.soyad,
             adres=hasta_data.adres,
+            mahalle=hasta_data.mahalle,
+            ilce=hasta_data.ilce,
+            il=hasta_data.il,
             telefon=hasta_data.telefon,
             profil_resmi_url=hasta_data.profil_resmi_url
         )
@@ -184,6 +187,8 @@ class AuthService:
             adres=eczane_data.adres,
             telefon=eczane_data.telefon,
             mahalle=eczane_data.mahalle,
+            ilce=eczane_data.ilce,
+            il=eczane_data.il,
             eczaci_adi=eczane_data.eczaci_adi,
             eczaci_soyadi=eczane_data.eczaci_soyadi,
             eczaci_diploma_no=eczane_data.eczaci_diploma_no,

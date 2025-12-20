@@ -11,6 +11,9 @@ class HastaBase(BaseModel):
     ad: str = Field(..., min_length=2, max_length=100)
     soyad: str = Field(..., min_length=2, max_length=100)
     adres: str = Field(..., min_length=10, max_length=500)
+    mahalle: Optional[str] = Field(None, max_length=100)
+    ilce: Optional[str] = Field(None, max_length=100)
+    il: Optional[str] = Field(None, max_length=100)
     telefon: str = Field(..., min_length=10, max_length=20)
     profil_resmi_url: Optional[str] = None
     
@@ -60,6 +63,9 @@ class HastaUpdate(BaseModel):
     ad: Optional[str] = Field(None, min_length=2, max_length=100)
     soyad: Optional[str] = Field(None, min_length=2, max_length=100)
     adres: Optional[str] = Field(None, min_length=10, max_length=500)
+    mahalle: Optional[str] = Field(None, max_length=100)
+    ilce: Optional[str] = Field(None, max_length=100)
+    il: Optional[str] = Field(None, max_length=100)
     telefon: Optional[str] = Field(None, min_length=10, max_length=20)
     profil_resmi_url: Optional[str] = None
 
