@@ -73,6 +73,25 @@ class SiparisService:
                 }
             )
         
+        # Reçeteli ilaç kontrolü - güvenlik duvarı
+        # Eğer sipariş reçetesiz ise, sepette reçeteli ilaç olmamalı
+        ilac_repo = IlacRepository(self.db)
+        if not siparis_data.recete_id:
+            receteli_ilaclar = []
+            for item in siparis_data.items:
+                ilac = ilac_repo.get_by_id(UUID(item.ilac_id))
+                if ilac and ilac.receteli:
+                    receteli_ilaclar.append(ilac.ad)
+            
+            if receteli_ilaclar:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "message": "Reçeteli ilaçlar sadece geçerli bir reçete ile satın alınabilir",
+                        "receteli_ilaclar": receteli_ilaclar
+                    }
+                )
+        
         # Reçete validasyonu - güvenlik açığı düzeltmesi
         recete = None
         if siparis_data.recete_id:

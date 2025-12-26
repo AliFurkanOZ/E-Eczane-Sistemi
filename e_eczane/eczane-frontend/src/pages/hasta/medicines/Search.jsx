@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Search, ArrowLeft, Package, ShoppingCart, RefreshCw, Pill } from 'lucide-react';
+import { Search, ArrowLeft, Package, ShoppingCart, RefreshCw, Pill, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MainLayout from '../../../components/layout/MainLayout';
 import HastaSidebar from '../../../components/layout/HastaSidebar';
@@ -47,12 +47,22 @@ const MedicineSearch = () => {
   };
 
   const handleAddToCart = (medicine) => {
+    // Reçeteli ilaç kontrolü
+    if (medicine.receteli) {
+      toast.error('Bu ilaç reçeteli bir ilaçtır. Satın almak için doktor reçetesi gereklidir.', {
+        duration: 4000,
+        icon: '⚠️'
+      });
+      return;
+    }
+
     const cartItem = {
       ilac_id: medicine.id,
       ilac_adi: medicine.ad || medicine.name,
       barkod: medicine.barkod || medicine.barcode,
       miktar: 1,
-      birim_fiyat: parseFloat(medicine.fiyat || medicine.price || 0)
+      birim_fiyat: parseFloat(medicine.fiyat || medicine.price || 0),
+      receteli: false // Reçetesiz ilaç olduğunu işaretle
     };
 
     dispatch(addToSepet(cartItem));
@@ -172,17 +182,34 @@ const MedicineSearch = () => {
                   )}
 
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <Badge variant={medicine.receteli ? 'warning' : 'success'}>
-                      {medicine.receteli ? 'Reçeteli' : 'Reçetesiz'}
+                    <Badge variant={medicine.receteli ? 'danger' : 'success'}>
+                      {medicine.receteli ? (
+                        <><AlertCircle className="w-3 h-3 mr-1" /> Reçeteli</>
+                      ) : (
+                        'Reçetesiz'
+                      )}
                     </Badge>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleAddToCart(medicine)}
-                    >
-                      <ShoppingCart className="w-4 h-4 mr-1" />
-                      Sepete Ekle
-                    </Button>
+                    {medicine.receteli ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled
+                        className="opacity-60 cursor-not-allowed"
+                        title="Bu ilaç için doktor reçetesi gereklidir"
+                      >
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        Reçete Gerekli
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleAddToCart(medicine)}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-1" />
+                        Sepete Ekle
+                      </Button>
+                    )}
                   </div>
                 </CardBody>
               </Card>

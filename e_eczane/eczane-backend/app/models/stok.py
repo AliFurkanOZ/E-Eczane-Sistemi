@@ -46,6 +46,36 @@ class Stok(BaseModel):
         """İlaç fiyatını döndür"""
         return self.ilac.fiyat if self.ilac else 0
     
+    @property
+    def ilac_kategori(self):
+        """İlaç kategorisini döndür"""
+        return self.ilac.kategori.value if self.ilac and self.ilac.kategori else ""
+    
+    @property
+    def ilac_kullanim_talimati(self):
+        """İlaç kullanım talimatını döndür"""
+        return self.ilac.kullanim_talimati if self.ilac else ""
+    
+    @property
+    def ilac_etken_madde(self):
+        """İlaç etken maddesini döndür"""
+        return self.ilac.etken_madde if self.ilac else None
+    
+    @property
+    def ilac_firma(self):
+        """İlaç firmasını döndür"""
+        return self.ilac.firma if self.ilac else None
+    
+    @property
+    def ilac_receteli(self):
+        """İlaç reçeteli mi döndür"""
+        return self.ilac.receteli if self.ilac else False
+    
+    @property
+    def ilac_prospektus_url(self):
+        """İlaç prospektüs URL'sini döndür"""
+        return self.ilac.prospektus_url if self.ilac else None
+    
     def __repr__(self):
         return f"<Stok(eczane_id={self.eczane_id}, ilac_id={self.ilac_id}, miktar={self.miktar})>"
 

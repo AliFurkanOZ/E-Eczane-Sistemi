@@ -36,6 +36,12 @@ class StokResponse(BaseModel):
     ilac_adi: str
     ilac_barkod: str
     ilac_fiyat: Decimal
+    ilac_kategori: str = Field(default="", description="İlaç kategorisi")
+    ilac_kullanim_talimati: str = Field(default="", description="Kullanım talimatı")
+    ilac_etken_madde: Optional[str] = Field(None, description="Etken madde")
+    ilac_firma: Optional[str] = Field(None, description="Üretici firma")
+    ilac_receteli: bool = Field(default=False, description="Reçeteli mi")
+    ilac_prospektus_url: Optional[str] = Field(None, description="Prospektüs URL")
     created_at: datetime
     updated_at: datetime
     
