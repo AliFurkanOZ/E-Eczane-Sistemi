@@ -57,20 +57,14 @@ class EczaneService:
                 kategori=kategori,
                 kullanim_talimati=ilac_data.kullanim_talimati,
                 fiyat=ilac_data.fiyat,
-                receteli=False,  # Eczane sadece reçetesiz ekleyebilir
+                receteli=ilac_data.receteli,  # Formdan gelen değeri kullan
                 etken_madde=ilac_data.etken_madde,
                 firma=ilac_data.firma,
                 prospektus_url=None  # Eczane ürün eklerken prospektüs yok
             )
             
             ilac = self.ilac_repo.create(ilac_create)
-        else:
-            # İlaç varsa reçeteli mi kontrol et
-            if ilac.receteli:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Bu ilaç reçetelidir. Sadece reçetesiz ilaç ekleyebilirsiniz."
-                )
+        # İlaç zaten varsa, mevcut bilgileri kullan (reçeteli durumu dahil)
         
         # Stok oluştur veya güncelle
         stok_create = StokCreate(

@@ -7,7 +7,8 @@ import Card, { CardBody, CardHeader } from '../../../components/ui/Card';
 import {
     Package,
     ArrowLeft,
-    Save
+    Save,
+    AlertCircle
 } from 'lucide-react';
 import * as eczaneApi from '../../../api/eczaneApi';
 import toast from 'react-hot-toast';
@@ -23,6 +24,7 @@ const AddProduct = () => {
         etken_madde: '',
         kullanim_talimati: '',
         firma: '',
+        receteli: false,
         miktar: '',
         min_stok: '10'
     });
@@ -75,6 +77,7 @@ const AddProduct = () => {
                 etken_madde: formData.etken_madde || null,
                 kullanim_talimati: formData.kullanim_talimati,
                 firma: formData.firma || null,
+                receteli: formData.receteli,
                 baslangic_stok: parseInt(formData.miktar),
                 min_stok: parseInt(formData.min_stok) || 10
             };
@@ -138,7 +141,7 @@ const AddProduct = () => {
                     Yeni Ürün Ekle
                 </h1>
                 <p className="text-slate-500 mt-2">
-                    Reçetesiz ürün/ilaç ekleyin
+                    Stoğunuza yeni ürün veya ilaç ekleyin
                 </p>
             </div>
 
@@ -194,6 +197,41 @@ const AddProduct = () => {
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
                                 </select>
+                            </div>
+
+                            {/* Reçeteli mi */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Reçete Durumu
+                                </label>
+                                <div className="flex items-center gap-4 mt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, receteli: false }))}
+                                        className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${!formData.receteli
+                                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                            }`}
+                                    >
+                                        <span className="font-medium">Reçetesiz</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, receteli: true }))}
+                                        className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${formData.receteli
+                                            ? 'border-red-500 bg-red-50 text-red-700'
+                                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                            }`}
+                                    >
+                                        <AlertCircle className="w-4 h-4" />
+                                        <span className="font-medium">Reçeteli</span>
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">
+                                    {formData.receteli
+                                        ? 'Bu ilaç doktor reçetesi ile satılabilir'
+                                        : 'Bu ilaç reçetesiz satılabilir'}
+                                </p>
                             </div>
 
                             {/* Fiyat */}

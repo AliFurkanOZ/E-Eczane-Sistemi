@@ -73,6 +73,7 @@ class IlacEkle(BaseModel):
                 "fiyat": "12.50",
                 "etken_madde": "Asetilsalisilik Asit",
                 "firma": "Bayer",
+                "receteli": False,
                 "baslangic_stok": 100,
                 "min_stok": 20
             }
@@ -86,5 +87,6 @@ class IlacEkle(BaseModel):
     fiyat: Decimal = Field(..., gt=0, decimal_places=2, description="İlaç fiyatı (TL)")
     etken_madde: Optional[str] = Field(None, max_length=200, description="Etken madde")
     firma: Optional[str] = Field(None, max_length=200, description="Üretici firma")
+    receteli: bool = Field(default=False, description="Reçeteli mi")
     baslangic_stok: int = Field(..., ge=1, description="Başlangıç stok miktarı")
     min_stok: int = Field(default=10, ge=0, description="Minimum stok uyarı seviyesi")
