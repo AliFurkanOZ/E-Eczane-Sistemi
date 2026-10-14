@@ -1,0 +1,41 @@
+# ==============================================================================
+# E-Eczane Backend - .gitignore
+# ==============================================================================
+
+# Environment variables & secrets
+.env
+.env.*
+*.env
+*.env.local
+!.env.example
+!*.env.example
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Databases & local reports
+*.db
+*.sqlite
+*.sqlite3
+db_report.txt
+test_results.txt
+
+# Testing & caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+logs/
+*.log

@@ -1,0 +1,62 @@
+<<<<<<< HEAD
+# ==============================================================================
+# E-Eczane Frontend - .gitignore
+# ==============================================================================
+
+# Logs
+logs/
+=======
+# Logs
+logs
+>>>>>>> 3a9e5f39fb52bdb0ec86a73f519f73a4389e9002
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+<<<<<<< HEAD
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production build outputs
+dist/
+dist-ssr/
+build/
+out/
+
+# Environment files & secrets
+.env
+.env.*
+*.local
+!.env.example
+!*.env.example
+
+# Editor & OS files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+=======
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+>>>>>>> 3a9e5f39fb52bdb0ec86a73f519f73a4389e9002
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+<<<<<<< HEAD
+Thumbs.db
+=======
+>>>>>>> 3a9e5f39fb52bdb0ec86a73f519f73a4389e9002
